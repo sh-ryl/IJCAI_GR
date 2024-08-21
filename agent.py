@@ -3,9 +3,11 @@ from cooperative_craft_world import CooperativeCraftWorldState
 
 
 def goal_set_to_str(goal_set):
-    result = goal_set[0]
-    for i in range(1, len(goal_set)):
-        result = result + "_and_" + goal_set[i]
+    # *S* why is this function outside of the class?
+    result = list(goal_set.keys())[0]
+    for i in range(1, len(list(goal_set.keys()))):
+        result = result + "_and_" + list(goal_set.keys())[i]
+
     return result
 
 

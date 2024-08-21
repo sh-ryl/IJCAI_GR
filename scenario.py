@@ -28,10 +28,13 @@ scenarios["default"]["num_spawned"] = {
 # RL training scenario
 scenarios["train"] = {}
 
-scenarios["train"]["goal_sets"] = [
-    ["cloth", "stick", "plank"]
-]
+# scenarios["train"]["goal_sets"] = [
+#     ["cloth", "stick", "plank"]
+# ]
 
+scenarios["train"]["goal_sets"] = [
+    {"cloth": 0.1, "stick": 1, "plank": 0.5}
+]
 
 #########################
 ### NEUTRAL SCENARIOS ###

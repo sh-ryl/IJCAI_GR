@@ -358,8 +358,8 @@ class CooperativeCraftWorld(gym.Env):
             reward_dic = {}
 
             for item in _rewardable_items:
-                if item in agent.goal_set:
-                    reward_dic[item] = 1
+                if item in agent.goal_set.keys():
+                    reward_dic[item] = agent.goal_set[item]
                 else:
                     reward_dic[item] = 0
 

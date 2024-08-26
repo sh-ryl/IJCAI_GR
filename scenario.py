@@ -33,7 +33,7 @@ scenarios["train"] = {}
 # ]
 
 scenarios["train"]["goal_sets"] = [
-    {"cloth": 0.1, "stick": 1, "plank": 0.5}
+    {"gem": 0.1, "gold": 0.9}
     # {"cloth": 0.6, "stick": 0.3, "plank": 1}
 ]
 
@@ -255,7 +255,8 @@ scenarios["adversarial_1"]["externally_visible_goal_sets"] = [
     ["axe", "bed", "gold"]
 ]
 
-scenarios["adversarial_1"]["allegiance"] = [constants.ADVERSARIAL, constants.ADVERSARIAL]
+scenarios["adversarial_1"]["allegiance"] = [
+    constants.ADVERSARIAL, constants.ADVERSARIAL]
 
 scenarios["adversarial_1"]["num_spawned"] = {
     "wood": 4,
@@ -283,7 +284,8 @@ scenarios["adversarial_2"]["externally_visible_goal_sets"] = [
     ["axe", "bridge", "cloth", "rope"]
 ]
 
-scenarios["adversarial_2"]["allegiance"] = [constants.ADVERSARIAL, constants.ADVERSARIAL]
+scenarios["adversarial_2"]["allegiance"] = [
+    constants.ADVERSARIAL, constants.ADVERSARIAL]
 
 scenarios["adversarial_2"]["num_spawned"] = {
     "wood": 1,
@@ -311,7 +313,8 @@ scenarios["adversarial_3"]["externally_visible_goal_sets"] = [
     ["cloth", "plank", "rope", "stick"]
 ]
 
-scenarios["adversarial_3"]["allegiance"] = [constants.ADVERSARIAL, constants.ADVERSARIAL]
+scenarios["adversarial_3"]["allegiance"] = [
+    constants.ADVERSARIAL, constants.ADVERSARIAL]
 
 scenarios["adversarial_3"]["num_spawned"] = {
     "wood": 3,

@@ -33,9 +33,14 @@ scenarios["train"] = {}
 # ]
 
 scenarios["train"]["goal_sets"] = [
-    {"cloth": 0.6, "stick": 0.3, "plank": 1}
+    {"cloth": 0.1, "stick": 1, "plank": 0.5}
+    # {"cloth": 0.6, "stick": 0.3, "plank": 1}
 ]
 
+scenarios["eval"] = {}
+scenarios["eval"]["goal_sets"] = [
+    {"cloth": 1, "stick": 1, "plank": 1}
+]
 #########################
 ### NEUTRAL SCENARIOS ###
 #########################

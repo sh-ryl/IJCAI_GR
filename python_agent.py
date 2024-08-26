@@ -44,7 +44,6 @@ env_name = "cooperative_craft_world"
 num_seeds = -1
 max_steps = 100
 size=(7, 7)
-max_training_frames = 999999999
 
 current_scenario = scenario.scenarios[sys.argv[1]]
 
@@ -78,7 +77,7 @@ if sys.argv[1] == "train":
     gpu = 0
 else:
     agent_params["eval_mode"] = True
-    n_agents = 2
+    n_agents = 1 # 2 # Change for this code since we are only doing single agent GR
     gpu = -1 # Use CPU when not training
 
 main_rollout_style = constants.SUBGOAL_LEVEL_NON_COMMITTAL
@@ -111,14 +110,6 @@ goal_recogniser_log_dir = agent_params["log_dir"] # Set to None to disable loggi
 
 agent_params["saved_model_dir"] = os.path.dirname(os.path.realpath(__file__)) + '/saved_models/'
 
-eval_freq = 250000 # As per Rainbow paper
-eval_steps = 125000 # As per Rainbow paper
-eval_start_time = 1000000 # Don't start evaluating until gifted items at the start of training are phased out.
-agent_params["eval_ep"] = 0.01
-learning_curves_csv_filename = 'eval_scores.csv'
-with open(agent_params["log_dir"] + learning_curves_csv_filename,'a') as fd:
-    fd.write('Frame,Score\n')
-
 agent_params["dqn_config"] = DQN_Config(env.observation_space.shape[0], env.action_space.n, gpu=gpu, noisy_nets=False, n_latent=64)
 
 agent_params["n_step_n"] = 1
@@ -150,174 +141,39 @@ agent_params["graph_save_freq"] = 25000
 # For training methods that require n step returns, set the below to True.
 agent_params["post_episode_return_calcs_needed"] = True
 
+agent_params["eval_ep"] = 0.01 # can be put together in evaluation setting since transition params is not using it
+
 transition_params = {}
 transition_params["agent_params"] = agent_params
 transition_params["replay_size"] = 1000000
 transition_params["bufferSize"] = 512
 
+# Evaluation settings
+eval_freq = 250000 # As per Rainbow paper
+eval_steps = 125000 # As per Rainbow paper
+eval_start_time = 1000000 # Don't start evaluating until gifted items at the start of training are phased out.
 
-# Training agent
-agent_q_learner = NeuralQLearner("Q_learner", agent_params, transition_params)
+learning_curves_csv_filename = 'eval_scores.csv'
+with open(agent_params["log_dir"] + learning_curves_csv_filename,'a') as fd:
+    fd.write('Frame,Score\n')
 
-
-########## PAIRED AGENTS ##########
-agent_params_greedy = copy.deepcopy(agent_params)
-agent_params_greedy["exploration_style"] = "e_greedy"
-agent_params_greedy["eval_ep"] = 0.01
-agent_q_learner_paired = NeuralQLearner("Q_learner_greedy", agent_params_greedy, transition_params)
-
-agent_sp_paired = SchedulerAgent("SP_MCTS",
-        main_rollout_style,
-        None, # No goal recogniser, since using single player MCTS
-        num_targets_per_item=num_targets_per_item,
-        single_player=True,
-        psychic=False,
-        alpha=alpha,
-        beta=beta,
-        c=c,
-        extra_rollout_stochasticity=0.0,
-        external_agent_rollout_policy=eGreedyPolicy(0.1),
-        gamma=gamma,
-        external_agent_config=agent_params["dqn_config"])
-
-agent_goal_rec_paired = SchedulerAgent("Goal_Recogniser",
-        main_rollout_style,
-        GoalRecogniser(model_temperature=0.01,
-            hypothesis_momentum=main_hyp_mom,
-            kl_tolerance=main_kl_tol,
-            saved_model_dir=agent_params["saved_model_dir"],
-            dqn_config=agent_params["dqn_config"],
-            show_graph=agent_params["show_graphs"],
-            log_dir = goal_recogniser_log_dir),
-        num_targets_per_item=num_targets_per_item,
-        single_player=False,
-        psychic=False,
-        alpha=alpha,
-        beta=beta,
-        c=c,
-        extra_rollout_stochasticity=0.0,
-        external_agent_rollout_policy=eGreedyPolicy(0.1),
-        gamma=gamma,
-        external_agent_config=agent_params["dqn_config"])
-
-agent_i_rm_paired = SchedulerAgent("Psychic",
-        main_rollout_style,
-        GoalRecogniser(model_temperature=0.01,
-            hypothesis_momentum=main_hyp_mom,
-            kl_tolerance=main_kl_tol,
-            saved_model_dir=agent_params["saved_model_dir"],
-            dqn_config=agent_params["dqn_config"],
-            show_graph=agent_params["show_graphs"],
-            log_dir = goal_recogniser_log_dir),
-        num_targets_per_item=num_targets_per_item,
-        single_player=False,
-        psychic=True,
-        alpha=alpha,
-        beta=beta,
-        c=c,
-        extra_rollout_stochasticity=0.0,
-        external_agent_rollout_policy=eGreedyPolicy(0.1),
-        gamma=gamma,
-        external_agent_config=agent_params["dqn_config"])
-
-
-########## BASELINES ##########
-agent_sp = SchedulerAgent("SP_MCTS",
-        main_rollout_style,
-        None, # No goal recogniser, since using single player MCTS
-        num_targets_per_item=num_targets_per_item,
-        single_player=True,
-        psychic=False,
-        alpha=alpha,
-        beta=beta,
-        c=c,
-        extra_rollout_stochasticity=0.0,
-        external_agent_rollout_policy=eGreedyPolicy(0.1),
-        gamma=gamma,
-        external_agent_config=agent_params["dqn_config"])
-
-agent_i_rm = SchedulerAgent("Psychic",
-        main_rollout_style,
-        GoalRecogniser(model_temperature=0.01,
-            hypothesis_momentum=main_hyp_mom,
-            kl_tolerance=main_kl_tol,
-            saved_model_dir=agent_params["saved_model_dir"],
-            dqn_config=agent_params["dqn_config"],
-            show_graph=agent_params["show_graphs"],
-            log_dir = goal_recogniser_log_dir),
-        num_targets_per_item=num_targets_per_item,
-        single_player=False,
-        psychic=True,
-        alpha=alpha,
-        beta=beta,
-        c=c,
-        extra_rollout_stochasticity=0.0,
-        external_agent_rollout_policy=eGreedyPolicy(0.1),
-        gamma=gamma,
-        external_agent_config=agent_params["dqn_config"])
-
-
-agent_params_baseline = copy.deepcopy(agent_params)
-agent_params_baseline["exploration_style"] = "e_greedy"
-agent_params_baseline["eval_ep"] = 0.01
-agent_q_learner_baseline = NeuralQLearner("Q_learner_baseline", agent_params_baseline, transition_params)
-
-
-########## OUR APPROACH ##########
-agent_goal_rec = SchedulerAgent("Goal_Recogniser",
-        main_rollout_style,
-        GoalRecogniser(model_temperature=0.01,
-            hypothesis_momentum=main_hyp_mom,
-            kl_tolerance=main_kl_tol,
-            saved_model_dir=agent_params["saved_model_dir"],
-            dqn_config=agent_params["dqn_config"],
-            show_graph=agent_params["show_graphs"],
-            log_dir = goal_recogniser_log_dir),
-        num_targets_per_item=num_targets_per_item,
-        single_player=False,
-        psychic=False,
-        alpha=alpha,
-        beta=beta,
-        c=c,
-        extra_rollout_stochasticity=0.0,
-        external_agent_rollout_policy=eGreedyPolicy(0.1),
-        gamma=gamma,
-        external_agent_config=agent_params["dqn_config"])
-
-
-is_eval = False
+eval_running = False # different than eval_mode in agent config
 frame_num = 0
+max_training_frames = 999999999
 steps_since_eval_ran = 0
 steps_since_eval_began = 0
 eval_total_score = 0
 eval_total_episodes = 0
 best_eval_average = float("-inf")
-done = False
+episode_done = False
 
-if n_agents > 1:
-    agent_combos = [    
-        [agent_q_learner_paired, agent_q_learner_baseline],
-        [agent_q_learner_paired, agent_sp],
-        [agent_q_learner_paired, agent_i_rm],
-        [agent_q_learner_paired, agent_goal_rec],
+# Training agent
+agent_q_learner = NeuralQLearner("Q_learner", agent_params, transition_params)
 
-        [agent_sp_paired, agent_q_learner_baseline],
-        [agent_sp_paired, agent_sp],
-        [agent_sp_paired, agent_i_rm],
-        [agent_sp_paired, agent_goal_rec],
-
-        [agent_goal_rec_paired, agent_q_learner_baseline],
-        [agent_goal_rec_paired, agent_sp],
-        [agent_goal_rec_paired, agent_i_rm],
-        [agent_goal_rec_paired, agent_goal_rec],
-
-        [agent_i_rm_paired, agent_q_learner_baseline],
-        [agent_i_rm_paired, agent_sp],
-        [agent_i_rm_paired, agent_i_rm],
-        [agent_i_rm_paired, agent_goal_rec],
-    ]
-else:
-    agent_combos = [[agent_q_learner]]
+# Load agent
+model_file = "./new_models/cloth_1_stick_1_plank_1/model.chk"
+# model_loaded = True # to turn off evaluation (so that model is not updated)
+agent_combos = [[agent_q_learner]]
 
 reward = np.zeros((n_agents), dtype=np.float32)
 total_reward = np.zeros((n_agents), dtype=np.float32)
@@ -352,7 +208,7 @@ def reset_all():
     total_reward = np.zeros((n_agents), dtype=np.float32)
 
     for i in range(len(agents)):
-        agents[i].reset(i, seed, goal_sets[i], current_scenario["externally_visible_goal_sets"][i])
+        agents[i].reset(i, seed, goal_sets[i], current_scenario["externally_visible_goal_sets"][i], model_file)
 
     for i in range(len(agents)):
         agents[i].allegiance = current_scenario["allegiance"][i]
@@ -381,28 +237,29 @@ if agent_params["eval_mode"]:
         fd.write('seed,ext_agent,eval_agent,ext_agent_score,eval_agent_score\n')
 
 while frame_num < max_training_frames:
-
+    input()
     agent_idx = state.player_turn
 
-    a = agents[agent_idx].perceive(reward[agent_idx], state, done, is_eval)
+    a = agents[agent_idx].perceive(reward[agent_idx], state, episode_done, eval_running)
 
     # If we're in multiagent mode, and the other agent has a goal recogniser, update its goal probabilities.
     if n_agents == 2 and isinstance(agents[1 - agent_idx], SchedulerAgent) and agents[1 - agent_idx].goal_recogniser is not None:
         agents[1 - agent_idx].goal_recogniser.perceive(state, a)
 
-    state, reward, done, info = env.step_full_state(a)
+    state, reward, episode_done, info = env.step_full_state(a)
+    print(reward)
 
     for i in range(n_agents):
         total_reward[i] += reward[i]
 
-    if is_eval:
+    if eval_running:
         steps_since_eval_began += 1
     else:
         steps_since_eval_ran += 1
         frame_num += 1
 
-    if done:
-        if is_eval:
+    if episode_done:
+        if eval_running: # This is only run during training
             print('Evaluation time step: ' + str(steps_since_eval_began) + ', episode ended with score: ' + str(total_reward[0]))
             eval_total_score += total_reward[0]
             eval_total_episodes += 1
@@ -418,21 +275,23 @@ while frame_num < max_training_frames:
                 else:
                     score_str = score_str + ', ' + agents[i].name + ": " + str(total_reward[i])
 
-            if agent_params["eval_mode"]:
-                score_str = score_str + '. Full score: ' + str(total_reward[1] + current_scenario["allegiance"][1] * total_reward[0]) + " (" + "{:.2f}".format((sum_total_reward[agent_combo_idx, 1] + current_scenario["allegiance"][1] * sum_total_reward[agent_combo_idx, 0]) / num_trials) + ")"
+            # if agent_params["eval_mode"]:
+            #     score_str = score_str + '. Full score: ' + str(total_reward[1] + current_scenario["allegiance"][1] * total_reward[0]) + " (" + "{:.2f}".format((sum_total_reward[agent_combo_idx, 1] + current_scenario["allegiance"][1] * sum_total_reward[agent_combo_idx, 0]) / num_trials) + ")"
 
             print('Time step: ' + str(frame_num) + ', ep scores:' + score_str[1:])
 
             if agent_params["eval_mode"]:
                 with open(agent_params["log_dir"] + results_filename, 'a') as fd:
-                    fd.write("'" + float_to_str(seed) + ',' + agents[0].name + ',' + agents[1].name + ',' + str(total_reward[0]) + ',' + str(total_reward[1]) + '\n')
+                    # fd.write("'" + float_to_str(seed) + ',' + agents[0].name + ',' + agents[1].name + ',' + str(total_reward[0]) + ',' + str(total_reward[1]) + '\n')
+                    fd.write("'" + float_to_str(seed) + ',' + agents[0].name + ',' + str(total_reward[0]) + '\n')
 
         reset_all()
 
+        # Model evaluation (only during Training)
         if not agent_params["eval_mode"]:
             
             if frame_num >= eval_start_time and steps_since_eval_ran >= eval_freq:
-                is_eval = True
+                eval_running = True
                 eval_total_score = 0
                 eval_total_episodes = 0
 
@@ -455,5 +314,5 @@ while frame_num < max_training_frames:
                     else:
                         print('Did not beat best eval average of ' + str(best_eval_average))
 
-                is_eval = False
+                eval_running = False
                 steps_since_eval_began = 0

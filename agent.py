@@ -18,7 +18,7 @@ class Agent(object):
 
 
     @abstractmethod
-    def perceive(self, reward:float, state:CooperativeCraftWorldState, terminal:bool, is_eval:bool):
+    def perceive(self, reward:float, state:CooperativeCraftWorldState, terminal:bool, is_eval:bool, model_file:str):
         pass
 
 

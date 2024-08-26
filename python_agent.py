@@ -92,7 +92,7 @@ gamma = gamma_single_agent ** (1.0 / n_agents) # To maintain equivalence when th
 
 num_targets_per_item = 1
 
-env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False, render=False, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps)
+env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False, render=True, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps)
 
 agent_params["agent_type"] = "dqn"
 

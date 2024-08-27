@@ -33,7 +33,9 @@ scenarios["train"] = {}
 # ]
 
 scenarios["train"]["goal_sets"] = [
-    {"gem": 0.1, "gold": 0.9}
+    # {"gem": 0.1, "gold": 0.9}
+    # {"gem": 0.5, "gold": 0.5}
+    {"gem": 0.9, "gold": 0.1}
     # {"cloth": 0.6, "stick": 0.3, "plank": 1}
 ]
 

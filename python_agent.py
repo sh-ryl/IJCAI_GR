@@ -4,17 +4,10 @@ import sys
 import numpy as np
 import decimal
 import scenario
-import copy
-import constants
 from cooperative_craft_world import CooperativeCraftWorld
 from random import randrange
-from goal_recogniser import GoalRecogniser
 from neural_q_learner import NeuralQLearner
 from dqn import DQN_Config
-from policy import eGreedyPolicy
-from scheduler_agent import SchedulerAgent
-import torch
-
 
 ctx = decimal.Context()
 ctx.prec = 20
@@ -76,16 +69,13 @@ agent_params = {}
 if sys.argv[1] == "train":
     agent_params["eval_mode"] = False
     n_agents = 1
-    if torch.cuda.is_available():
-        gpu = 0
-    else:
-        gpu = -1
+    gpu = 0
 else:
     agent_params["eval_mode"] = True
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
     gpu = -1  # Use CPU when not training
 
-env_render = False
+env_render = True
 
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False,
                             render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps)

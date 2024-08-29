@@ -75,7 +75,7 @@ else:
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
     gpu = -1  # Use CPU when not training
 
-env_render = True
+env_render = False
 
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False,
                             render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps)

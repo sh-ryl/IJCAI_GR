@@ -12,7 +12,7 @@ from dqn import DQN_Config
 ctx = decimal.Context()
 ctx.prec = 20
 
-
+# region HELPER FUNCTIONS
 def float_to_str(f):
     """
     Convert the given float to a string,
@@ -21,7 +21,49 @@ def float_to_str(f):
     d1 = ctx.create_decimal(repr(f))
     return format(d1, 'f')
 
+def reset_all():
 
+    global agents, agent_combo_idx, total_reward, num_trials, seed, state
+
+    agent_combo_idx += 1
+    if agent_combo_idx >= len(agent_combos):
+        agent_combo_idx = 0
+        num_trials += 1
+
+        # Only reset the environment seed when we're up to a new agent combination (to remove bias from the evaluation).
+        if num_seeds != -1:
+            seed = (seed + 1) % num_seeds
+        else:
+            seed = random.randrange(sys.maxsize)
+
+        if agent_params["test_mode"]:
+            print("\nSetting environment seed = " + str(seed) + "...")
+
+    agents = agent_combos[agent_combo_idx]
+
+    total_reward = np.zeros((n_agents), dtype=np.float32)
+
+    for i in range(len(agents)):
+        agents[i].reset(i, seed, goal_sets[i],
+                        current_scenario["externally_visible_goal_sets"][i], model_file)
+                        # will only reset with model file if it's on evaluation mode
+
+    state = env.reset(agents, seed)
+
+    # Give starting items (if applicable).
+    for i in range(len(agents)):
+        for item, count in current_scenario["starting_items"][i].items():
+            state.inventory[i][item] = count
+
+    # Make the tasks easier at the beginning of training by gifting some starting items (gradually phased out).
+    if not agent_params["test_mode"]:
+        start_with_item_pr = 0.5 * max(1.0 - frame_num / 1000000, 0)
+        for k, v in state.inventory[0].items():
+            if np.random.uniform() < start_with_item_pr:
+                state.inventory[0][k] += 1
+# endregion
+
+# region ENV SETUP
 if len(sys.argv) < 2:
     print('Usage:', sys.argv[0], 'scenario')
     sys.exit()
@@ -29,11 +71,6 @@ if len(sys.argv) < 2:
 if sys.argv[1] not in scenario.scenarios:
     print("Unknown scenario: " + sys.argv[1])
     sys.exit()
-
-
-#####################
-# ENVIRONMENT SETUP #
-#####################
 
 env_name = "cooperative_craft_world"
 num_seeds = -1
@@ -53,57 +90,61 @@ if "num_spawned" not in current_scenario:
 if "regeneration" not in current_scenario:
     current_scenario["regeneration"] = scenario.scenarios["default"]["regeneration"]
 
-if "allegiance" not in current_scenario:
-    current_scenario["allegiance"] = scenario.scenarios["default"]["allegiance"]
-
 if "starting_items" not in current_scenario:
     current_scenario["starting_items"] = scenario.scenarios["default"]["starting_items"]
-
-
-###################
-#### SCENARIOS ####
-###################
 
 agent_params = {}
 
 if sys.argv[1] == "train":
-    agent_params["eval_mode"] = False
+    agent_params["test_mode"] = False
     n_agents = 1
-    gpu = 0
+    gpu = -1
 else:
-    agent_params["eval_mode"] = True
+    agent_params["test_mode"] = True
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
     gpu = -1  # Use CPU when not training
 
-env_render = False
+if len(sys.argv) > 2:
+    if sys.argv[2] == "render":
+        env_render = True
+else:
+    env_render = False
 
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False,
                             render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps)
+# endregion
 
+# region PARAMETERS
 agent_params["agent_type"] = "dqn"
 
-# Optimizer settings
+# OPTIMIZER settings
 agent_params["adam_lr"] = 0.000125
 agent_params["adam_eps"] = 0.00015
 agent_params["adam_beta1"] = 0.9
 agent_params["adam_beta2"] = 0.999
 
-# File input/output settings
+# FILE I/O settings
 goal_set_keys = list(goal_sets[0].keys())
-result_folder = goal_set_keys[0] + "_" + str(goal_sets[0][goal_set_keys[0]])
+result_folder = '/new_models/' + goal_set_keys[0] + "_" + str(goal_sets[0][goal_set_keys[0]])
 for i in range(1, len(goal_set_keys)):
     result_folder = result_folder + "_" + \
         goal_set_keys[i] + "_" + str(goal_sets[0][goal_set_keys[i]])
 
 agent_params["log_dir"] = os.path.dirname(os.path.realpath(__file__))
-agent_params["log_dir"] = agent_params["log_dir"] + \
-    f'/new_models/{result_folder}/'
+agent_params["log_dir"] = agent_params["log_dir"] + f'{result_folder}/'
 if not os.path.exists(agent_params["log_dir"]):
     os.makedirs(agent_params["log_dir"])
 
-learning_curves_csv_filename = "eval_scores.csv"
-with open(agent_params["log_dir"] + learning_curves_csv_filename, 'a') as fd:
+training_scores_file = "training_scores.csv"
+with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
     fd.write('Frame,Score\n')
+
+model_file = result_folder + "/model.chk" # To be used in eval mode only 
+
+if agent_params["test_mode"]:
+    testing_scores_file = 'testing_scores.csv'
+    with open(agent_params["log_dir"] + testing_scores_file, 'w') as fd:
+        fd.write('seed,agent,agent_score\n')
 
 # Set to None to disable logging
 goal_recogniser_log_dir = agent_params["log_dir"]
@@ -111,7 +152,7 @@ goal_recogniser_log_dir = agent_params["log_dir"]
 agent_params["saved_model_dir"] = os.path.dirname(
     os.path.realpath(__file__)) + '/saved_models/'
 
-# DQN config
+# DQN Settings
 agent_params["dqn_config"] = DQN_Config(
     env.observation_space.shape[0], env.action_space.n, gpu=gpu, noisy_nets=False, n_latent=64)
 
@@ -129,7 +170,7 @@ agent_params["discount"] = 0.99
 agent_params["mixed_monte_carlo_proportion_start"] = 0.2
 agent_params["mixed_monte_carlo_proportion_endt"] = 1000000
 
-if agent_params["eval_mode"]:
+if agent_params["test_mode"]:
     agent_params["learn_start"] = -1  # Indicates no training
 else:
     agent_params["learn_start"] = 50000
@@ -151,14 +192,15 @@ transition_params = {}
 transition_params["agent_params"] = agent_params
 transition_params["replay_size"] = 1000000
 transition_params["bufferSize"] = 512
+# endregion
 
-# Evaluation settings
+# region EVAL SETTINGS
 eval_freq = 250000  # As per Rainbow paper
 eval_steps = 125000  # As per Rainbow paper
 # Don't start evaluating until gifted items at the start of training are phased out.
 eval_start_time = 1000000
 
-eval_running = False  # different than eval_mode in agent config
+eval_running = False  # different than test_mode in agent config
 frame_num = 0
 max_training_frames = 10000000  # 999999999
 steps_since_eval_ran = 0
@@ -167,12 +209,11 @@ eval_total_score = 0
 eval_total_episodes = 0
 best_eval_average = float("-inf")
 episode_done = False
+# endregion
 
-# Training agent
+# region AGENT INIT
+# Initialise agent
 agent_q_learner = NeuralQLearner("Q_learner", agent_params, transition_params)
-
-# Load agent
-model_file = "./new_models/cloth_1_stick_1_plank_1/model.chk"
 agent_combos = [[agent_q_learner]]
 
 reward = np.zeros((n_agents), dtype=np.float32)
@@ -185,60 +226,10 @@ num_trials = 0
 agent_combo_idx = len(agent_combos)
 seed = -1
 state = None
+# endregion
 
-
-def reset_all():
-
-    global agents, agent_combo_idx, total_reward, num_trials, seed, state
-
-    agent_combo_idx += 1
-    if agent_combo_idx >= len(agent_combos):
-        agent_combo_idx = 0
-        num_trials += 1
-
-        # Only reset the environment seed when we're up to a new agent combination (to remove bias from the evaluation).
-        if num_seeds != -1:
-            seed = (seed + 1) % num_seeds
-        else:
-            seed = random.randrange(sys.maxsize)
-
-        if agent_params["eval_mode"]:
-            print("\nSetting environment seed = " + str(seed) + "...")
-
-    agents = agent_combos[agent_combo_idx]
-
-    total_reward = np.zeros((n_agents), dtype=np.float32)
-
-    for i in range(len(agents)):
-        agents[i].reset(i, seed, goal_sets[i],
-                        current_scenario["externally_visible_goal_sets"][i], model_file)
-
-    for i in range(len(agents)):
-        agents[i].allegiance = current_scenario["allegiance"][i]
-        if n_agents == 2 and isinstance(agents[i], SchedulerAgent) and agents[i].goal_recogniser is not None:
-            agents[i].goal_recogniser.set_external_agent(agents[1 - i])
-
-    state = env.reset(agents, seed)
-
-    # Give starting items (if applicable).
-    for i in range(len(agents)):
-        for item, count in current_scenario["starting_items"][i].items():
-            state.inventory[i][item] = count
-
-    # Make the tasks easier at the beginning of training by gifting some starting items (gradually phased out).
-    if not agent_params["eval_mode"]:
-        start_with_item_pr = 0.5 * max(1.0 - frame_num / 1000000, 0)
-        for k, v in state.inventory[0].items():
-            if np.random.uniform() < start_with_item_pr:
-                state.inventory[0][k] += 1
-
-
+# region MAIN LOOP
 reset_all()
-
-if agent_params["eval_mode"]:
-    results_filename = 'results_' + sys.argv[1] + '.csv'
-    with open(agent_params["log_dir"] + results_filename, 'w') as fd:
-        fd.write('seed,ext_agent,ext_agent_score\n')
 
 while frame_num < max_training_frames:
     agent_idx = state.player_turn
@@ -271,7 +262,7 @@ while frame_num < max_training_frames:
                 average_total_reward = sum_total_reward[agent_combo_idx,
                                                         i] / num_trials
 
-                if agent_params["eval_mode"]:
+                if agent_params["test_mode"]:
                     score_str = score_str + ', ' + agents[i].name + ": " + str(
                         total_reward[i]) + " (" + "{:.2f}".format(average_total_reward) + ")"
                 else:
@@ -281,15 +272,15 @@ while frame_num < max_training_frames:
             print('Time step: ' + str(frame_num) +
                   ', ep scores:' + score_str[1:])
 
-            if agent_params["eval_mode"]:
-                with open(agent_params["log_dir"] + results_filename, 'a') as fd:
+            if agent_params["test_mode"]:
+                with open(agent_params["log_dir"] + testing_scores_file, 'a') as fd:
                     fd.write("'" + float_to_str(seed) + ',' +
                              agents[0].name + ',' + str(total_reward[0]) + '\n')
 
         reset_all()
 
         # Model evaluation (only during Training)
-        if not agent_params["eval_mode"]:
+        if not agent_params["test_mode"]:
 
             if frame_num >= eval_start_time and steps_since_eval_ran >= eval_freq:
                 eval_running = True
@@ -306,7 +297,7 @@ while frame_num < max_training_frames:
                       str(ave_eval_score))
 
                 if isinstance(agents[0], NeuralQLearner):
-                    with open(agent_params["log_dir"] + learning_curves_csv_filename, 'a') as fd:
+                    with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
                         fd.write(str(agents[0].numSteps) +
                                  ',' + str(ave_eval_score) + '\n')
 
@@ -324,4 +315,6 @@ while frame_num < max_training_frames:
 
     if env_render:
         input()
+        print("Goal sets", goal_sets[0].items())
         print(total_reward)
+# endregion

@@ -19,7 +19,7 @@ class NeuralQLearner(agent.Agent):
         self.agent_params = agent_params
         self.transition_params = transition_params
 
-        self.eval_mode = agent_params["eval_mode"]
+        self.test_mode = agent_params["test_mode"]
         self.agent_type = agent_params["agent_type"]
         self.log_dir = agent_params["log_dir"]
         self.saved_model_dir = agent_params["saved_model_dir"]
@@ -339,7 +339,7 @@ class NeuralQLearner(agent.Agent):
 
     def eSoftmax(self, state, is_eval):
 
-        if is_eval or self.eval_mode:
+        if is_eval or self.test_mode:
             self.ep = self.eval_ep
         else:
             self.ep = self.ep_end + np.maximum(0, (self.ep_start - self.ep_end) * (
@@ -355,7 +355,7 @@ class NeuralQLearner(agent.Agent):
 
     def eGreedy(self, state, is_eval):
 
-        if is_eval or self.eval_mode:
+        if is_eval or self.test_mode:
             self.ep = self.eval_ep
         else:
             self.ep = self.ep_end + np.maximum(0, (self.ep_start - self.ep_end) * (
@@ -373,10 +373,7 @@ class NeuralQLearner(agent.Agent):
 
         super().reset(agent_num, seed, possible_goal_sets, externally_visible_goal_sets)
 
-        if self.eval_mode:
-
-            # model_file = self.saved_model_dir + self.goal + '.chk'
-
+        if self.test_mode:
             checkpoint = torch.load(model_file, map_location=self.device)
 
             self.network = DQN(self.agent_params["dqn_config"])

@@ -144,6 +144,7 @@ result_folder = all_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
 agent_params["log_dir"] = real_path + f'{result_folder}/'
 if not os.path.exists(agent_params["log_dir"]):
     os.makedirs(agent_params["log_dir"])
+print(f"Agent model loaded: {result_folder}")
 
 training_scores_file = "training_scores.csv"
 with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
@@ -260,6 +261,9 @@ while frame_num < max_training_frames:
     a = agent.perceive(reward, state, episode_done, eval_running)
 
     state, reward_list, episode_done, info = env.step_full_state(a)
+
+    if GR:
+        GR.perceive(state, a)
 
     reward = reward_list[0] # reward is list with length based on num_agents
     

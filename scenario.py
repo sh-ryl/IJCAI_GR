@@ -39,8 +39,8 @@ scenarios["eval"] = {}
 scenarios["eval"]["goal_sets"] = [
     # {"gem": 0.1, "gold": 0.9}
     # {"gem": 0.5, "gold": 0.5}
-    # {"gem": 0.9, "gold": 0.1}
-    {"cloth": 1, "stick": 1, "plank": 1}
+    {"gem": 0.9, "gold": 0.1}
+    # {"cloth": 1, "stick": 1, "plank": 1}
 ]
 #########################
 ### NEUTRAL SCENARIOS ###

@@ -169,6 +169,7 @@ class CooperativeCraftWorldState():
         if self.steps >= self.max_steps:
             self.terminal = True
 
+        # set player for multiagent environment
         self.player_turn = (self.player_turn + 1) % self.n_agents 
 
         return reward

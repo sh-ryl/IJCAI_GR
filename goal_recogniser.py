@@ -7,10 +7,32 @@ from cooperative_craft_world import CooperativeCraftWorldState
 from dqn import DQN, DQN_Config
 from dialog import Dialog
 
+import os
+import re
+
+def find_folders(directory, required_objects):
+    pattern = r'([a-zA-Z]+_\d+\.?\d*)'
+    trained_model_paths = []
+    trained_model_goal_dics = []
+    
+    # Iterate through the directory
+    for root, dirs, files in os.walk(directory):
+        for folder_name in dirs:
+            matches = [x.split('_') for x in re.findall(pattern, folder_name)]
+            obj_list = [x[0] for x in matches]
+            weight_list = [x[1] for x in matches]
+            if set(obj_list) == set(required_objects):
+                trained_model_paths.append(folder_name)
+                trained_model_goal_dic = {}
+                for obj in required_objects:
+                    trained_model_goal_dic[obj] = weight_list[obj_list.index(obj)]
+                trained_model_goal_dics.append(trained_model_goal_dic)
+    
+    return trained_model_paths, trained_model_goal_dics
 
 class GoalRecogniser(object):
 
-    def __init__(self, model_temperature=0.01, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config:DQN_Config=None, show_graph=False, log_dir=None):
+    def __init__(self, goal_list=[], model_temperature=0.01, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config:DQN_Config=None, show_graph=False, log_dir=None):
 
         self.saved_model_dir = saved_model_dir
         self.model_temperature = model_temperature
@@ -25,18 +47,24 @@ class GoalRecogniser(object):
         self.device = torch.device("cuda" if dqn_config.gpu >= 0 else "cpu")
         self.probability_plot = Dialog()
 
+        self.goal_list = goal_list
+
+        self.trained_model_paths, self.trained_model_goal_dics = find_folders(self.saved_model_dir, self.goal_list)
+
+        
+
 
     def set_external_agent(self, other_agent:agent.Agent):
 
         self.other_agent = other_agent
-
-        for goal in other_agent.externally_visible_goal_sets + [self.other_agent.goal]:
-
-            if goal not in self.models:
-                model_file = self.saved_model_dir + goal + '.chk'
-                checkpoint = torch.load(model_file, map_location=self.device)
-                self.models[goal] = DQN(self.dqn_config)
-                self.models[goal].load_state_dict(checkpoint['model_state_dict'])
+        # print(list(other_agent.externally_visible_goal_sets.keys()) + [self.other_agent.goal])
+        # for goal in list(other_agent.externally_visible_goal_sets.keys()) + [self.other_agent.goal]:
+            
+        #     if goal not in self.models:
+        #         model_file = self.saved_model_dir + goal + '.chk'
+        #         checkpoint = torch.load(model_file, map_location=self.device)
+        #         self.models[goal] = DQN(self.dqn_config)
+        #         self.models[goal].load_state_dict(checkpoint['model_state_dict'])
 
         self.probability_plot.reset()
         self.total_kl = np.zeros((len(self.other_agent.externally_visible_goal_sets)), dtype=np.float32)

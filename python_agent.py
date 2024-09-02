@@ -4,10 +4,14 @@ import sys
 import numpy as np
 import decimal
 import scenario
-from cooperative_craft_world import CooperativeCraftWorld
 from random import randrange
+
+from cooperative_craft_world import CooperativeCraftWorld
+
 from neural_q_learner import NeuralQLearner
 from dqn import DQN_Config
+
+from goal_recogniser import GoalRecogniser
 
 ctx = decimal.Context()
 ctx.prec = 20
@@ -21,37 +25,44 @@ def float_to_str(f):
     d1 = ctx.create_decimal(repr(f))
     return format(d1, 'f')
 
+def goal_dic_to_str(goal_dic, inc_weight):
+    # *S* why is this function outside of the class?
+    goal_dic_keys = list(goal_dic.keys())
+    goal_str = goal_dic_keys[0]
+    if inc_weight:
+        goal_str += "_" + str(goal_dic[goal_dic_keys[0]])
+        for i in range(1, len(goal_dic_keys)):
+            goal_str += "_" + goal_dic_keys[i] + "_" + str(goal_dic[goal_dic_keys[i]])
+    else:
+        for i in range(1, len(goal_dic_keys)):
+            goal_str += "_" + goal_dic_keys[i]
+
+    return goal_str
+
 def reset_all():
 
-    global agents, agent_combo_idx, total_reward, num_trials, seed, state
+    global agent, total_reward, num_trials, seed, state
 
-    agent_combo_idx += 1
-    if agent_combo_idx >= len(agent_combos):
-        agent_combo_idx = 0
-        num_trials += 1
+    num_trials += 1
 
-        # Only reset the environment seed when we're up to a new agent combination (to remove bias from the evaluation).
-        if num_seeds != -1:
-            seed = (seed + 1) % num_seeds
-        else:
-            seed = random.randrange(sys.maxsize)
+    # Only reset the environment seed when we're up to a new agent combination (to remove bias from the evaluation).
+    if num_seeds != -1:
+        seed = (seed + 1) % num_seeds
+    else:
+        seed = random.randrange(sys.maxsize)
 
-        if agent_params["test_mode"]:
-            print("\nSetting environment seed = " + str(seed) + "...")
+    if agent_params["test_mode"]:
+        print("\nSetting environment seed = " + str(seed) + "...")
 
-    agents = agent_combos[agent_combo_idx]
+    total_reward = 0
 
-    total_reward = np.zeros((n_agents), dtype=np.float32)
+    agent.reset(goal_dic, current_scenario["externally_visible_goal_sets"][0], model_file)
+    # will only reset with model file if it's on evaluation mode
 
-    for i in range(len(agents)):
-        agents[i].reset(i, seed, goal_sets[i],
-                        current_scenario["externally_visible_goal_sets"][i], model_file)
-                        # will only reset with model file if it's on evaluation mode
-
-    state = env.reset(agents, seed)
+    state = env.reset([agent], seed)
 
     # Give starting items (if applicable).
-    for i in range(len(agents)):
+    for i in range(len([agent])):
         for item, count in current_scenario["starting_items"][i].items():
             state.inventory[i][item] = count
 
@@ -63,7 +74,7 @@ def reset_all():
                 state.inventory[0][k] += 1
 # endregion
 
-# region ENV SETUP
+# region ENV INIT
 if len(sys.argv) < 2:
     print('Usage:', sys.argv[0], 'scenario')
     sys.exit()
@@ -80,6 +91,7 @@ size = (7, 7)
 current_scenario = scenario.scenarios[sys.argv[1]]
 
 goal_sets = current_scenario["goal_sets"]
+goal_dic = goal_sets[0]
 
 if "externally_visible_goal_sets" not in current_scenario:
     current_scenario["externally_visible_goal_sets"] = goal_sets
@@ -124,14 +136,12 @@ agent_params["adam_beta1"] = 0.9
 agent_params["adam_beta2"] = 0.999
 
 # FILE I/O settings
-goal_set_keys = list(goal_sets[0].keys())
-result_folder = '/new_models/' + goal_set_keys[0] + "_" + str(goal_sets[0][goal_set_keys[0]])
-for i in range(1, len(goal_set_keys)):
-    result_folder = result_folder + "_" + \
-        goal_set_keys[i] + "_" + str(goal_sets[0][goal_set_keys[i]])
+real_path = os.path.dirname(os.path.realpath(__file__))
+all_models_folder = '/new_models/'
 
-agent_params["log_dir"] = os.path.dirname(os.path.realpath(__file__))
-agent_params["log_dir"] = agent_params["log_dir"] + f'{result_folder}/'
+# saving/loading agent model for specific reward weightings
+result_folder = all_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
+agent_params["log_dir"] = real_path + f'{result_folder}/'
 if not os.path.exists(agent_params["log_dir"]):
     os.makedirs(agent_params["log_dir"])
 
@@ -139,19 +149,15 @@ training_scores_file = "training_scores.csv"
 with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
     fd.write('Frame,Score\n')
 
-model_file = result_folder + "/model.chk" # To be used in eval mode only 
+model_file = real_path + result_folder + "/model.chk" # To be used in eval mode only 
 
 if agent_params["test_mode"]:
     testing_scores_file = 'testing_scores.csv'
     with open(agent_params["log_dir"] + testing_scores_file, 'w') as fd:
         fd.write('seed,agent,agent_score\n')
 
-# Set to None to disable logging
-goal_recogniser_log_dir = agent_params["log_dir"]
-
 agent_params["saved_model_dir"] = os.path.dirname(
     os.path.realpath(__file__)) + '/saved_models/'
-
 # DQN Settings
 agent_params["dqn_config"] = DQN_Config(
     env.observation_space.shape[0], env.action_space.n, gpu=gpu, noisy_nets=False, n_latent=64)
@@ -213,34 +219,51 @@ episode_done = False
 
 # region AGENT INIT
 # Initialise agent
-agent_q_learner = NeuralQLearner("Q_learner", agent_params, transition_params)
-agent_combos = [[agent_q_learner]]
+agent = NeuralQLearner("Q_learner", agent_params, transition_params)
+agent_combos = [[agent]]
 
-reward = np.zeros((n_agents), dtype=np.float32)
-total_reward = np.zeros((n_agents), dtype=np.float32)
+reward = 0
+total_reward = 0
 
-sum_total_reward = np.zeros((len(agent_combos), n_agents), dtype=np.float32)
 num_trials = 0
 
 # So that we reset seeds during the first call of reset_all().
-agent_combo_idx = len(agent_combos)
 seed = -1
 state = None
 # endregion
 
-# region MAIN LOOP
 reset_all()
 
+# region GR INIT
+# if test mode
+# create goal recogniser to load 3 models
+# for each step agent takes
+    # for each model
+        # calculate probabilities
+        # calculate goal scores
+
+if len(sys.argv) > 3:
+    if sys.argv[3] == "GR":
+        model_dir = real_path + all_models_folder
+        goal_log_path = real_path + '/goal/' + goal_dic_to_str(goal_dic, inc_weight=False)
+        if not os.path.exists(goal_log_path):
+            os.makedirs(goal_log_path)
+
+        GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir, dqn_config=agent_params["dqn_config"], log_dir=goal_log_path)
+        GR.set_external_agent(agent)
+else:
+    GR = None
+# endregion
+
+# region MAIN LOOP
 while frame_num < max_training_frames:
-    agent_idx = state.player_turn
+    a = agent.perceive(reward, state, episode_done, eval_running)
 
-    a = agents[agent_idx].perceive(
-        reward[agent_idx], state, episode_done, eval_running)
+    state, reward_list, episode_done, info = env.step_full_state(a)
 
-    state, reward, episode_done, info = env.step_full_state(a)
-
-    for i in range(n_agents):
-        total_reward[i] += reward[i]
+    reward = reward_list[0] # reward is list with length based on num_agents
+    
+    total_reward += reward
 
     if eval_running:
         steps_since_eval_began += 1
@@ -251,23 +274,20 @@ while frame_num < max_training_frames:
     if episode_done:
         if eval_running:  # This is only run during training
             print('Evaluation time step: ' + str(steps_since_eval_began) +
-                  ', episode ended with score: ' + str(total_reward[0]))
-            eval_total_score += total_reward[0]
+                  ', episode ended with score: ' + str(total_reward))
+            eval_total_score += total_reward
             eval_total_episodes += 1
         else:
             score_str = ''
-            for i in range(0, n_agents):
+            
+            average_total_reward = total_reward / num_trials
 
-                sum_total_reward[agent_combo_idx, i] += total_reward[i]
-                average_total_reward = sum_total_reward[agent_combo_idx,
-                                                        i] / num_trials
-
-                if agent_params["test_mode"]:
-                    score_str = score_str + ', ' + agents[i].name + ": " + str(
-                        total_reward[i]) + " (" + "{:.2f}".format(average_total_reward) + ")"
-                else:
-                    score_str = score_str + ', ' + \
-                        agents[i].name + ": " + str(total_reward[i])
+            if agent_params["test_mode"]:
+                score_str = score_str + ', ' + agent.name + ": " + str(
+                    total_reward) + " (" + "{:.2f}".format(average_total_reward) + ")"
+            else:
+                score_str = score_str + ', ' + \
+                    agent.name + ": " + str(total_reward)
 
             print('Time step: ' + str(frame_num) +
                   ', ep scores:' + score_str[1:])
@@ -275,7 +295,7 @@ while frame_num < max_training_frames:
             if agent_params["test_mode"]:
                 with open(agent_params["log_dir"] + testing_scores_file, 'a') as fd:
                     fd.write("'" + float_to_str(seed) + ',' +
-                             agents[0].name + ',' + str(total_reward[0]) + '\n')
+                             agent.name + ',' + str(total_reward) + '\n')
 
         reset_all()
 
@@ -296,25 +316,23 @@ while frame_num < max_training_frames:
                 print('Evaluation ended with average score of ' +
                       str(ave_eval_score))
 
-                if isinstance(agents[0], NeuralQLearner):
-                    with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
-                        fd.write(str(agents[0].numSteps) +
-                                 ',' + str(ave_eval_score) + '\n')
+                with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
+                    fd.write(str(agent.numSteps) + ',' + str(ave_eval_score) + '\n')
 
-                    if ave_eval_score > best_eval_average:
-                        best_eval_average = ave_eval_score
-                        print('New best eval average of ' +
-                              str(best_eval_average))
-                        agents[0].save_model()
-                    else:
-                        print('Did not beat best eval average of ' +
-                              str(best_eval_average))
+                if ave_eval_score > best_eval_average:
+                    best_eval_average = ave_eval_score
+                    print('New best eval average of ' +
+                            str(best_eval_average))
+                    agent.save_model()
+                else:
+                    print('Did not beat best eval average of ' +
+                            str(best_eval_average))
 
                 eval_running = False
                 steps_since_eval_began = 0
 
     if env_render:
         input()
-        print("Goal sets", goal_sets[0].items())
+        print("Goal sets", goal_dic.items())
         print(total_reward)
 # endregion

@@ -2,15 +2,6 @@ from abc import abstractmethod
 from cooperative_craft_world import CooperativeCraftWorldState
 
 
-def goal_set_to_str(goal_set):
-    # *S* why is this function outside of the class?
-    result = list(goal_set.keys())[0]
-    for i in range(1, len(list(goal_set.keys()))):
-        result = result + "_and_" + list(goal_set.keys())[i]
-
-    return result
-
-
 class Agent(object):
 
     def __init__(self, name):
@@ -22,8 +13,10 @@ class Agent(object):
         pass
 
 
-    def reset(self, agent_num, seed, goal_set, externally_visible_goal_sets):
-        self.agent_num = agent_num
+    def reset(self, goal_set, externally_visible_goal_sets):
+        # this function is used in goal_recogniser.py!
+        # to be investigated: but also why is this here?
+        # this current setup assumes that goal is agent specific
         self.goal_set = goal_set
         self.externally_visible_goal_sets = externally_visible_goal_sets
 

@@ -17,6 +17,8 @@ ctx = decimal.Context()
 ctx.prec = 20
 
 # region HELPER FUNCTIONS
+
+
 def float_to_str(f):
     """
     Convert the given float to a string,
@@ -25,6 +27,7 @@ def float_to_str(f):
     d1 = ctx.create_decimal(repr(f))
     return format(d1, 'f')
 
+
 def goal_dic_to_str(goal_dic, inc_weight):
     # *S* why is this function outside of the class?
     goal_dic_keys = list(goal_dic.keys())
@@ -32,12 +35,14 @@ def goal_dic_to_str(goal_dic, inc_weight):
     if inc_weight:
         goal_str += "_" + str(goal_dic[goal_dic_keys[0]])
         for i in range(1, len(goal_dic_keys)):
-            goal_str += "_" + goal_dic_keys[i] + "_" + str(goal_dic[goal_dic_keys[i]])
+            goal_str += "_" + goal_dic_keys[i] + \
+                "_" + str(goal_dic[goal_dic_keys[i]])
     else:
         for i in range(1, len(goal_dic_keys)):
             goal_str += "_" + goal_dic_keys[i]
 
     return goal_str
+
 
 def reset_all():
 
@@ -56,7 +61,8 @@ def reset_all():
 
     total_reward = 0
 
-    agent.reset(goal_dic, current_scenario["externally_visible_goal_sets"][0], model_file)
+    agent.reset(
+        goal_dic, current_scenario["externally_visible_goal_sets"][0], model_file)
     # will only reset with model file if it's on evaluation mode
 
     state = env.reset([agent], seed)
@@ -73,6 +79,7 @@ def reset_all():
             if np.random.uniform() < start_with_item_pr:
                 state.inventory[0][k] += 1
 # endregion
+
 
 # region ENV INIT
 if len(sys.argv) < 2:
@@ -137,10 +144,10 @@ agent_params["adam_beta2"] = 0.999
 
 # FILE I/O settings
 real_path = os.path.dirname(os.path.realpath(__file__))
-all_models_folder = '/new_models/'
+ag_models_folder = '/ag_model/'
 
 # saving/loading agent model for specific reward weightings
-result_folder = all_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
+result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
 agent_params["log_dir"] = real_path + f'{result_folder}/'
 if not os.path.exists(agent_params["log_dir"]):
     os.makedirs(agent_params["log_dir"])
@@ -150,7 +157,8 @@ training_scores_file = "training_scores.csv"
 with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
     fd.write('Frame,Score\n')
 
-model_file = real_path + result_folder + "/model.chk" # To be used in eval mode only 
+model_file = real_path + result_folder + \
+    "/model.chk"  # To be used in eval mode only
 
 if agent_params["test_mode"]:
     testing_scores_file = 'testing_scores.csv'
@@ -239,18 +247,22 @@ reset_all()
 # if test mode
 # create goal recogniser to load 3 models
 # for each step agent takes
-    # for each model
-        # calculate probabilities
-        # calculate goal scores
+# for each model
+# calculate probabilities
+# calculate goal scores
 
 if len(sys.argv) > 3:
     if sys.argv[3] == "GR":
-        model_dir = real_path + all_models_folder
-        goal_log_path = real_path + '/goal/' + goal_dic_to_str(goal_dic, inc_weight=False)
+        gr_models_folder = '/gr_model/'
+        model_dir = real_path + gr_models_folder
+        print(f"GR model folder: {gr_models_folder}")
+        goal_log_path = real_path + '/gr_log/' + \
+            goal_dic_to_str(goal_dic, inc_weight=False)
         if not os.path.exists(goal_log_path):
             os.makedirs(goal_log_path)
 
-        GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir, dqn_config=agent_params["dqn_config"], log_dir=goal_log_path)
+        GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir,
+                            dqn_config=agent_params["dqn_config"], log_dir=goal_log_path)
         GR.set_external_agent(agent)
 else:
     GR = None
@@ -265,8 +277,8 @@ while frame_num < max_training_frames:
     if GR:
         GR.perceive(state, a)
 
-    reward = reward_list[0] # reward is list with length based on num_agents
-    
+    reward = reward_list[0]  # reward is list with length based on num_agents
+
     total_reward += reward
 
     if eval_running:
@@ -283,7 +295,7 @@ while frame_num < max_training_frames:
             eval_total_episodes += 1
         else:
             score_str = ''
-            
+
             average_total_reward = total_reward / num_trials
 
             if agent_params["test_mode"]:
@@ -321,22 +333,26 @@ while frame_num < max_training_frames:
                       str(ave_eval_score))
 
                 with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
-                    fd.write(str(agent.numSteps) + ',' + str(ave_eval_score) + '\n')
+                    fd.write(str(agent.numSteps) + ',' +
+                             str(ave_eval_score) + '\n')
 
                 if ave_eval_score > best_eval_average:
                     best_eval_average = ave_eval_score
                     print('New best eval average of ' +
-                            str(best_eval_average))
+                          str(best_eval_average))
                     agent.save_model()
                 else:
                     print('Did not beat best eval average of ' +
-                            str(best_eval_average))
+                          str(best_eval_average))
 
                 eval_running = False
                 steps_since_eval_began = 0
 
     if env_render:
+        print()
+        print(f"Goal sets: {goal_dic.items()}")
+        print(f"Total reward: {total_reward}")
+        print(f"Timestep: {frame_num}")
         input()
-        print("Goal sets", goal_dic.items())
-        print(total_reward)
+
 # endregion

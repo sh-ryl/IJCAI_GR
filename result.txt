@@ -1,0 +1,991 @@
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 1
+
+FT=@...
+...=.T.
+.F|W#|#
+.#=.=..
+.*..0..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([9.8038e-01, 2.4035e-04, 1.4291e-02, 3.4478e-03, 4.7072e-04, 1.1675e-03])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 24.084873037412763
+KL_Div Softmax probabilities,tensor([9.9843e-01, 4.4822e-04, 8.5235e-04, 1.5071e-04, 1.3595e-05, 1.0381e-04])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 21.62762274243869
+KL_Div Softmax probabilities,tensor([0.8626, 0.0080, 0.0145, 0.0177, 0.0654, 0.0319])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 12.133019283413887
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 4
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 1
+
+FT=@...
+...=.T.
+.F|W#|#
+.#=.0..
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([5.0733e-04, 7.4001e-06, 2.1898e-04, 3.6591e-06, 9.9084e-01, 8.4233e-03])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 31.671224432066083
+KL_Div Softmax probabilities,tensor([2.6245e-04, 2.0207e-01, 8.7281e-04, 5.3470e-01, 6.8173e-02, 1.9392e-01])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 29.87305559613742
+KL_Div Softmax probabilities,tensor([0.0100, 0.0735, 0.0325, 0.0154, 0.5977, 0.2709])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 16.73597128689289
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 5
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 1
+plank: 0
+rope: 0
+stick: 0
+wood: 1
+
+FT=@...
+...=.T.
+.F|W#|#
+.#=.0..
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([3.5645e-01, 1.4559e-05, 6.4280e-01, 5.0861e-04, 1.2347e-04, 1.0550e-04])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 40.67072279937565
+KL_Div Softmax probabilities,tensor([0.0247, 0.2588, 0.3872, 0.2412, 0.0848, 0.0032])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 32.34041132428683
+KL_Div Softmax probabilities,tensor([0.1066, 0.2237, 0.2874, 0.0912, 0.1173, 0.1738])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 18.87870056927204
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 6
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 1
+plank: 0
+rope: 0
+stick: 0
+wood: 1
+
+FT=@...
+...=.T.
+.F|W0|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([1.7474e-03, 1.6009e-05, 9.9820e-01, 2.7208e-05, 5.3328e-06, 5.4304e-06])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 47.02034981735051
+KL_Div Softmax probabilities,tensor([4.4498e-04, 6.4610e-03, 9.8657e-01, 3.0839e-03, 3.3098e-03, 1.3139e-04])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 40.057897705817595
+KL_Div Softmax probabilities,tensor([0.0554, 0.2581, 0.3975, 0.0519, 0.0894, 0.1477])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 21.77246482670307
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 7
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 1
+plank: 0
+rope: 0
+stick: 0
+wood: 1
+
+FT=@...
+...=.T.
+.F|0#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([4.0305e-03, 3.8167e-06, 3.0803e-03, 4.0095e-05, 1.3200e-01, 8.6085e-01])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 52.80309088714421
+KL_Div Softmax probabilities,tensor([8.0920e-05, 4.2415e-03, 9.9274e-01, 2.5945e-04, 2.5970e-03, 7.6971e-05])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 40.065179847879335
+KL_Div Softmax probabilities,tensor([0.0619, 0.2521, 0.4034, 0.0456, 0.0867, 0.1503])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 22.680202022194862
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 8
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 1
+plank: 0
+rope: 0
+stick: 1
+wood: 0
+
+FT=@...
+...=.T.
+.F|0#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([6.5289e-01, 9.7753e-03, 3.6183e-04, 3.2949e-01, 4.2721e-03, 3.2091e-03])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 58.54486830718815
+KL_Div Softmax probabilities,tensor([6.3151e-06, 1.0779e-03, 9.9663e-01, 2.4236e-04, 1.9256e-03, 1.1317e-04])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 49.151818298501894
+KL_Div Softmax probabilities,tensor([0.0147, 0.3339, 0.0259, 0.4673, 0.0666, 0.0915])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 25.071083322167397
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 9
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 1
+plank: 0
+rope: 0
+stick: 1
+wood: 0
+
+FT=@...
+...0.T.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([0.1496, 0.2676, 0.0140, 0.4558, 0.0306, 0.0826])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 60.44490392692387
+KL_Div Softmax probabilities,tensor([0.0009, 0.5380, 0.4131, 0.0192, 0.0039, 0.0250])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 56.1322756044101
+KL_Div Softmax probabilities,tensor([0.0280, 0.4231, 0.2458, 0.0911, 0.0997, 0.1123])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 28.646466985344887
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 10
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 1
+plank: 0
+rope: 0
+stick: 1
+wood: 0
+
+FT=@...
+...=0T.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([5.8553e-02, 9.4950e-03, 8.0991e-04, 9.1077e-01, 8.6431e-04, 1.9510e-02])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 60.538371512666345
+KL_Div Softmax probabilities,tensor([0.0046, 0.2283, 0.6626, 0.0329, 0.0085, 0.0631])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 59.54642727295868
+KL_Div Softmax probabilities,tensor([0.0178, 0.4720, 0.2342, 0.0771, 0.0870, 0.1119])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 31.20889712870121
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 11
+
+axe: 0
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 1
+plank: 0
+rope: 0
+stick: 1
+wood: 0
+
+FT=@...
+...=.0.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([1.2159e-04, 1.7231e-02, 3.9522e-06, 6.1024e-01, 2.6669e-03, 3.6973e-01])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 61.03227243758738
+KL_Div Softmax probabilities,tensor([7.0210e-04, 8.7691e-01, 5.0427e-02, 6.7724e-03, 1.9587e-02, 4.5598e-02])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 64.54133036057465
+KL_Div Softmax probabilities,tensor([0.0211, 0.4459, 0.2015, 0.1132, 0.0981, 0.1202])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 33.38751603662968
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 12
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=@...
+...=.0.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([5.0699e-02, 1.1316e-01, 8.3525e-01, 6.5238e-05, 1.5861e-04, 6.7513e-04])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 68.33287582732737
+KL_Div Softmax probabilities,tensor([0.0009, 0.3728, 0.4984, 0.0224, 0.0288, 0.0766])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 67.10992958466522
+KL_Div Softmax probabilities,tensor([5.3336e-05, 5.3145e-03, 2.9985e-02, 7.4186e-04, 8.4548e-01, 1.1842e-01])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 35.52100206911564
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 13
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=@...
+...=0T.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([6.8207e-01, 3.8644e-02, 2.7148e-01, 8.7631e-05, 5.2153e-06, 7.7044e-03])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 69.63672659732401
+KL_Div Softmax probabilities,tensor([1.4597e-05, 4.8517e-01, 2.0369e-01, 2.3272e-01, 7.1250e-03, 7.1289e-02])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 68.70109405438416
+KL_Div Softmax probabilities,tensor([2.1866e-07, 2.7160e-04, 5.9261e-04, 1.3515e-05, 9.2619e-01, 7.2934e-02])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 42.95198132097721
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 14
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=@...
+...0.T.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([9.9641e-01, 2.0986e-04, 6.1022e-05, 1.2838e-04, 7.6823e-05, 3.1141e-03])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 79.34100649692118
+KL_Div Softmax probabilities,tensor([8.8187e-08, 2.1080e-03, 1.4074e-05, 5.9146e-03, 9.7321e-01, 1.8750e-02])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 79.87230434338562
+KL_Div Softmax probabilities,tensor([7.2173e-14, 3.0085e-11, 1.7619e-12, 9.0007e-12, 9.9607e-01, 3.9297e-03])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 70.01659466326237
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 15
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 0
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=0...
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([0.1257, 0.0008, 0.0061, 0.0480, 0.0973, 0.7221])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 81.41462419368327
+KL_Div Softmax probabilities,tensor([1.2535e-07, 9.8933e-01, 2.4062e-03, 4.7327e-04, 3.4743e-03, 4.3118e-03])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 95.76442089001648
+KL_Div Softmax probabilities,tensor([1.9477e-10, 3.6493e-05, 1.2593e-06, 1.4769e-06, 9.5941e-01, 4.0553e-02])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 92.37578274309635
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0
+Timestep: 16
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 1
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=0...
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([0.0016, 0.5991, 0.3270, 0.0478, 0.0115, 0.0130])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 85.87740657664835
+KL_Div Softmax probabilities,tensor([1.5211e-07, 9.9847e-01, 4.4596e-05, 3.3876e-04, 4.5267e-04, 6.9797e-04])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 103.46477832715027
+KL_Div Softmax probabilities,tensor([0.0027, 0.5041, 0.4211, 0.0117, 0.0367, 0.0237])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 95.6815238147974
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0.9
+Timestep: 17
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 1
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...0.T.
+.F|W#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([5.6018e-04, 1.9216e-01, 7.9373e-01, 5.1525e-04, 1.1209e-02, 1.8244e-03])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 87.52681658603251
+KL_Div Softmax probabilities,tensor([1.7120e-07, 1.6985e-03, 4.1545e-06, 2.2200e-02, 9.5334e-01, 2.2760e-02])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 109.84276523510925
+KL_Div Softmax probabilities,tensor([5.5289e-04, 5.8199e-04, 6.9564e-03, 2.7474e-04, 8.7548e-01, 1.1616e-01])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 103.13057853281498
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0.9
+Timestep: 18
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 1
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|0#|#
+.#=....
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([3.2317e-03, 4.9517e-01, 4.9990e-01, 1.1639e-03, 2.6324e-05, 5.1213e-04])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 88.22967837192118
+KL_Div Softmax probabilities,tensor([0.0008, 0.1996, 0.5287, 0.1622, 0.0520, 0.0566])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 111.45442035119049
+KL_Div Softmax probabilities,tensor([9.6953e-01, 3.0315e-04, 7.6424e-03, 1.2755e-02, 7.4097e-03, 2.3632e-03])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 111.23185016214848
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0.9
+Timestep: 19
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 1
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=0...
+.*..|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([2.6915e-03, 7.1063e-02, 9.2048e-01, 5.7479e-04, 2.9535e-04, 4.8983e-03])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 90.87386677600443
+KL_Div Softmax probabilities,tensor([0.0087, 0.0244, 0.0066, 0.9541, 0.0025, 0.0037])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 115.16784074227326
+KL_Div Softmax probabilities,tensor([0.7655, 0.0013, 0.1254, 0.0070, 0.0828, 0.0179])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 117.86087562143803
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0.9
+Timestep: 20
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 1
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*.0|..
+.W@...#
+*......
+KL_Div Softmax probabilities,tensor([7.2491e-04, 4.0068e-02, 9.5860e-01, 1.4562e-04, 6.1964e-05, 4.0007e-04])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 94.09105227328837
+KL_Div Softmax probabilities,tensor([2.1871e-02, 1.2721e-03, 2.5757e-05, 9.7663e-01, 6.2819e-05, 1.3477e-04])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 121.83496310631745
+KL_Div Softmax probabilities,tensor([9.9704e-01, 2.4000e-07, 1.6596e-05, 4.2012e-04, 2.3053e-03, 2.2177e-04])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 133.10348750650883
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0.9
+Timestep: 21
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 1
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.W@0..#
+*......
+KL_Div Softmax probabilities,tensor([7.1465e-03, 1.5738e-02, 9.7348e-01, 2.5131e-03, 1.3830e-04, 9.8279e-04])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 98.24271557666361
+KL_Div Softmax probabilities,tensor([9.8891e-01, 1.3762e-04, 1.1444e-04, 1.0697e-02, 4.2163e-05, 9.7618e-05])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 130.72596576134674
+KL_Div Softmax probabilities,tensor([9.9946e-01, 1.8308e-08, 5.5677e-07, 1.4409e-04, 3.6528e-04, 3.3173e-05])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 150.91942264139652
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0.9
+Timestep: 22
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 1
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.W0...#
+*......
+KL_Div Softmax probabilities,tensor([0.0937, 0.1851, 0.0414, 0.0667, 0.2873, 0.3259])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 101.42801401950419
+KL_Div Softmax probabilities,tensor([9.9865e-01, 1.8117e-04, 1.5815e-04, 9.0844e-04, 4.7244e-05, 5.8588e-05])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 139.4779455892276
+KL_Div Softmax probabilities,tensor([9.9935e-01, 1.5027e-08, 2.6456e-07, 5.7044e-04, 7.3272e-05, 8.5694e-06])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 166.06462909281254
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 0.9
+Timestep: 23
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.W0...#
+*......
+KL_Div Softmax probabilities,tensor([0.0073, 0.5599, 0.2183, 0.0643, 0.1141, 0.0360])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 103.59883377887309
+KL_Div Softmax probabilities,tensor([9.9835e-01, 6.3516e-05, 3.7491e-05, 1.5128e-03, 1.1849e-05, 2.2753e-05])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 150.8211786977481
+KL_Div Softmax probabilities,tensor([9.9999e-01, 9.9059e-10, 1.1509e-08, 1.2863e-06, 7.3862e-06, 6.6696e-07])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 177.8805222660303
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 24
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.0....#
+*......
+KL_Div Softmax probabilities,tensor([0.0087, 0.8001, 0.1447, 0.0248, 0.0201, 0.0015])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 105.53158686496317
+KL_Div Softmax probabilities,tensor([0.8733, 0.0060, 0.0069, 0.1071, 0.0015, 0.0052])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 155.8007838956546
+KL_Div Softmax probabilities,tensor([9.9996e-01, 4.3494e-09, 1.0487e-08, 7.8817e-06, 2.4867e-05, 2.4969e-06])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 196.25361682474613
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 25
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.W....#
+*0.....
+KL_Div Softmax probabilities,tensor([0.0044, 0.6189, 0.1149, 0.0496, 0.2078, 0.0044])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 106.01134932972491
+KL_Div Softmax probabilities,tensor([2.7557e-01, 9.0659e-03, 8.1245e-03, 7.0329e-01, 3.2228e-04, 3.6201e-03])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 160.5040219060611
+KL_Div Softmax probabilities,tensor([9.9884e-01, 3.3687e-06, 4.7120e-07, 1.0190e-04, 9.1448e-04, 1.3538e-04])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 208.85460330545902
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 26
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.0....#
+*......
+KL_Div Softmax probabilities,tensor([0.0107, 0.7847, 0.1496, 0.0283, 0.0250, 0.0016])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 110.54492057301104
+KL_Div Softmax probabilities,tensor([0.9330, 0.0026, 0.0037, 0.0560, 0.0014, 0.0033])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 160.57334191421978
+KL_Div Softmax probabilities,tensor([9.9996e-01, 4.8004e-09, 1.3203e-08, 8.8108e-06, 2.8638e-05, 2.8491e-06])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 208.85464359738762
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 27
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.0....#
+*......
+KL_Div Softmax probabilities,tensor([0.0119, 0.7763, 0.1519, 0.0303, 0.0279, 0.0016])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 114.12231076695025
+KL_Div Softmax probabilities,tensor([0.9537, 0.0017, 0.0024, 0.0386, 0.0013, 0.0022])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 167.22128016571514
+KL_Div Softmax probabilities,tensor([9.9996e-01, 5.0432e-09, 1.4814e-08, 9.3157e-06, 3.0733e-05, 3.0434e-06])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 219.2448079726928
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 28
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.*..|..
+.0....#
+*......
+KL_Div Softmax probabilities,tensor([0.0132, 0.7675, 0.1542, 0.0323, 0.0312, 0.0017])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 117.59078610874712
+KL_Div Softmax probabilities,tensor([0.9608, 0.0015, 0.0019, 0.0328, 0.0012, 0.0018])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 173.96113020996563
+KL_Div Softmax probabilities,tensor([9.9995e-01, 5.2981e-09, 1.6621e-08, 9.8495e-06, 3.2982e-05, 3.2510e-06])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 229.56436134793694
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 29
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.0..|..
+.W....#
+*......
+KL_Div Softmax probabilities,tensor([0.0182, 0.5451, 0.3351, 0.0634, 0.0289, 0.0092])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 121.5983296725899
+KL_Div Softmax probabilities,tensor([1.2229e-03, 1.9922e-03, 4.1786e-04, 9.9507e-01, 5.4041e-05, 1.2480e-03])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 180.66766125778668
+KL_Div Softmax probabilities,tensor([9.9997e-01, 3.2531e-09, 4.8646e-09, 1.1604e-05, 1.2369e-05, 1.5799e-06])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 229.5643868583993
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 30
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+0*..|..
+.W....#
+*......
+KL_Div Softmax probabilities,tensor([0.0061, 0.3163, 0.5874, 0.0254, 0.0278, 0.0370])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 122.13032502867281
+KL_Div Softmax probabilities,tensor([3.7529e-04, 1.8697e-03, 4.2197e-04, 9.9413e-01, 4.4336e-06, 3.2006e-03])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 188.43824488739483
+KL_Div Softmax probabilities,tensor([9.9969e-01, 2.0453e-07, 1.8853e-07, 6.6440e-05, 2.1426e-04, 3.2642e-05])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 245.0484194893197
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 31
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+0#=....
+.*..|..
+.W....#
+*......
+KL_Div Softmax probabilities,tensor([0.0050, 0.4935, 0.3510, 0.0601, 0.0393, 0.0511])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 127.42911929823458
+KL_Div Softmax probabilities,tensor([1.6953e-06, 1.3416e-04, 9.6339e-05, 9.9880e-01, 2.1812e-07, 9.6299e-04])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 201.72592455963604
+KL_Div Softmax probabilities,tensor([1.1288e-01, 3.9095e-04, 2.5214e-06, 8.7970e-01, 5.2760e-03, 1.7572e-03])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 247.2298708099679
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 32
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+0*..|..
+.W....#
+*......
+KL_Div Softmax probabilities,tensor([0.0056, 0.2969, 0.6154, 0.0229, 0.0264, 0.0328])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 128.64356274344027
+KL_Div Softmax probabilities,tensor([3.8404e-04, 1.8774e-03, 4.0125e-04, 9.9431e-01, 3.7283e-06, 3.0207e-03])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 208.003768511815
+KL_Div Softmax probabilities,tensor([9.9971e-01, 1.6500e-07, 1.7982e-07, 6.2715e-05, 1.9481e-04, 2.9531e-05])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 262.8471908706979
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 33
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+0*..|..
+.W....#
+*......
+KL_Div Softmax probabilities,tensor([0.0053, 0.2873, 0.6290, 0.0217, 0.0258, 0.0309])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 132.1216730568558
+KL_Div Softmax probabilities,tensor([3.7766e-04, 1.8994e-03, 4.0222e-04, 9.9438e-01, 3.4241e-06, 2.9346e-03])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 213.83494813065045
+KL_Div Softmax probabilities,tensor([9.9972e-01, 1.4830e-07, 1.7558e-07, 6.0907e-05, 1.8576e-04, 2.8106e-05])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 273.32671071475306
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 34
+
+axe: 1
+bed: 0
+bridge: 0
+cloth: 0
+gem: 2
+gold: 0
+grass: 0
+iron: 0
+plank: 0
+rope: 0
+stick: 0
+wood: 0
+
+FT=....
+...=.T.
+.F|W#|#
+.#=....
+.0..|..
+.W....#
+*......
+KL_Div Softmax probabilities,tensor([0.0435, 0.4491, 0.3474, 0.1285, 0.0147, 0.0169])
+KL_DIV Model {'gem': '0.9', 'gold': '0.1'}, 134.17355723120272
+KL_Div Softmax probabilities,tensor([7.2669e-04, 5.6288e-04, 3.0856e-04, 9.9740e-01, 1.9220e-05, 9.8436e-04])
+KL_DIV Model {'gem': '0.1', 'gold': '0.9'}, 213.8375532720238
+KL_Div Softmax probabilities,tensor([9.9996e-01, 4.3834e-09, 8.1481e-09, 1.6604e-05, 1.8000e-05, 2.2565e-06])
+KL_DIV Model {'gem': '0.5', 'gold': '0.5'}, 284.33256913607875
+
+Goal sets: dict_items([('gem', 0.9), ('gold', 0.1)])
+Total reward: 1.8
+Timestep: 35

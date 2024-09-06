@@ -117,7 +117,7 @@ agent_params = {}
 if sys.argv[1] == "train":
     agent_params["test_mode"] = False
     n_agents = 1
-    gpu = -1
+    gpu = 0
 else:
     agent_params["test_mode"] = True
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR

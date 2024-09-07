@@ -38,7 +38,7 @@ scenarios["train"]["goal_sets"] = [
     # {"plank": 0.2, "stick": 0.8}
     # {"plank": 0.3, "stick": 0.7}
     # {"plank": 0.4, "stick": 0.6} ## done here
-    {"plank": 0.5, "stick": 0.5} # start here next
+    # {"plank": 0.5, "stick": 0.5} # start here next
     # {"plank": 0.6, "stick": 0.4}
     # {"plank": 0.7, "stick": 0.3}
     # {"plank": 0.8, "stick": 0.2}

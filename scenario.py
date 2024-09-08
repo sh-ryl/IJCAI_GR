@@ -32,10 +32,10 @@ scenarios["train"]["goal_sets"] = [
     # {"cloth": 0.1, "stick": 0.9}
     # {"cloth": 0.2, "stick": 0.8}
     # {"cloth": 0.3, "stick": 0.7}
-    # {"cloth": 0.4, "stick": 0.6}
+    {"cloth": 0.4, "stick": 0.6} # start here next
     # {"cloth": 0.5, "stick": 0.5}
     # {"cloth": 0.6, "stick": 0.4}
-    {"cloth": 0.7, "stick": 0.3} # start here next
+    # {"cloth": 0.7, "stick": 0.3} 
     # {"cloth": 0.8, "stick": 0.2}
     # {"cloth": 0.9, "stick": 0.1}
     # {"gem": 0.1, "gold": 0.9}

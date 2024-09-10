@@ -48,8 +48,8 @@ scenarios["train"]["goal_sets"] = [
     # {"plank": 0.3, "stick": 0.7}
     # {"plank": 0.4, "stick": 0.6}
     # {"plank": 0.5, "stick": 0.5}
-    {"plank": 0.6, "stick": 0.4} # retrain this
-    # {"plank": 0.7, "stick": 0.3}
+    # {"plank": 0.6, "stick": 0.4} # retrain this
+    {"plank": 0.7, "stick": 0.3} # start here next
     # {"plank": 0.8, "stick": 0.2}
     # {"plank": 0.9, "stick": 0.1}
 ]

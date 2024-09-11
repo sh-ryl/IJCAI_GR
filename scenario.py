@@ -29,6 +29,15 @@ scenarios["default"]["num_spawned"] = {
 scenarios["train"] = {}
 
 scenarios["train"]["goal_sets"] = [
+    # {"cloth": 0.1, "stick": 0.9}
+    # {"cloth": 0.2, "stick": 0.8}
+    # {"cloth": 0.3, "stick": 0.7}
+    # {"cloth": 0.4, "stick": 0.6}
+    # {"cloth": 0.5, "stick": 0.5}
+    # {"cloth": 0.6, "stick": 0.4}
+    # {"cloth": 0.7, "stick": 0.3} 
+    # {"cloth": 0.8, "stick": 0.2}
+    # {"cloth": 0.9, "stick": 0.1}
     # {"gem": 0.1, "gold": 0.9}
     # {"gem": 0.3, "gold": 0.7}
     # {"gem": 0.5, "gold": 0.5}
@@ -37,8 +46,8 @@ scenarios["train"]["goal_sets"] = [
     # {"plank": 0.1, "stick": 0.9}
     # {"plank": 0.2, "stick": 0.8}
     # {"plank": 0.3, "stick": 0.7}
-    # {"plank": 0.4, "stick": 0.6} ## done here
-    # {"plank": 0.5, "stick": 0.5} # start here next
+    # {"plank": 0.4, "stick": 0.6}
+    # {"plank": 0.5, "stick": 0.5}
     # {"plank": 0.6, "stick": 0.4}
     # {"plank": 0.7, "stick": 0.3}
     # {"plank": 0.8, "stick": 0.2}

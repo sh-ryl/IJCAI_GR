@@ -45,13 +45,13 @@ _rewardable_items = [
 ]
 
 _recipes = {
-    "axe": ("toolshed", {"iron" : 1, "stick" : 1}),
-    "bed": ("workbench", {"grass" : 1, "plank" : 1}),
-    "bridge": ("factory", {"iron" : 1, "wood" : 1}),
-    "cloth": ("factory", {"grass" : 1}),
-    "plank": ("toolshed", {"wood" : 1}),
-    "rope": ("toolshed", {"grass" : 1}),
-    "stick": ("workbench", {"wood" : 1})
+    "axe": ("toolshed", {"iron": 1, "stick": 1}),
+    "bed": ("workbench", {"grass": 1, "plank": 1}),
+    "bridge": ("factory", {"iron": 1, "wood": 1}),
+    "cloth": ("factory", {"grass": 1}),
+    "plank": ("toolshed", {"wood": 1}),
+    "rope": ("toolshed", {"grass": 1}),
+    "stick": ("workbench", {"wood": 1})
 }
 
 UP = 0
@@ -80,11 +80,10 @@ class Screen():
         for y in range(0, self.size[1]):
             self.rows.append('.' * self.size[0])
 
-
     def add_sprite(self, sprite_pos, sprite):
         row = len(self.rows) - sprite_pos.y - 1
-        self.rows[row] = self.rows[row][:sprite_pos.x] + sprite + self.rows[row][sprite_pos.x + 1:]
-
+        self.rows[row] = self.rows[row][:sprite_pos.x] + \
+            sprite + self.rows[row][sprite_pos.x + 1:]
 
     def render(self, filename=None):
         for y in range(0, self.size[1]):
@@ -93,7 +92,7 @@ class Screen():
 
 class CooperativeCraftWorldState():
 
-    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300):
+    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, belief=False, hidden_items=[]):
         self.player_turn = 0
         self.action_space = action_space
         self.n_agents = n_agents
@@ -101,7 +100,9 @@ class CooperativeCraftWorldState():
         self.size = size
         self.max_steps = max_steps
         self.reset()
-
+        self.belief = belief
+        if belief:
+            self.hidden_items = hidden_items
 
     def step(self, action, assumed_reward_func=_reward):
 
@@ -170,13 +171,12 @@ class CooperativeCraftWorldState():
             self.terminal = True
 
         # set player for multiagent environment
-        self.player_turn = (self.player_turn + 1) % self.n_agents 
+        self.player_turn = (self.player_turn + 1) % self.n_agents
 
         return reward
 
-
     def get_object_type_at_square(self, square):
-        
+
         if square is None:
             return "none"
 
@@ -187,7 +187,6 @@ class CooperativeCraftWorldState():
 
         return "none"
 
-
     def is_square_free(self, square):
         for position_list in self.objects.values():
             for pos in position_list:
@@ -195,22 +194,20 @@ class CooperativeCraftWorldState():
                     return False
         return True
 
-
     def get_free_square(self):
-        square = Vector2D(random.randrange(0, self.size[0]), random.randrange(0, self.size[1]))
+        square = Vector2D(random.randrange(
+            0, self.size[0]), random.randrange(0, self.size[1]))
         while not self.is_square_free(square):
-            square = Vector2D(random.randrange(0, self.size[0]), random.randrange(0, self.size[1]))
+            square = Vector2D(random.randrange(
+                0, self.size[0]), random.randrange(0, self.size[1]))
         return square
-
 
     def getNearestObjects(self, object_name, n=1):
         p_pos = self.objects["player"][self.player_turn]
-        return sorted(self.objects[object_name], key=lambda x:p_pos.distance_to(x))[0:n]
-
+        return sorted(self.objects[object_name], key=lambda x: p_pos.distance_to(x))[0:n]
 
     def getObjectCount(self, object_name):
         return len(self.objects[object_name])
-
 
     def reset(self):
         self.objects = {}
@@ -230,20 +227,33 @@ class CooperativeCraftWorldState():
         self.terminal = False
         self.steps = 0
 
-
     def getRepresentation(self):
-        
+
+        # ADD objects on the environment
         rep = []
-        max_dist = np.sqrt(self.size[0] * self.size[0] + self.size[1] * self.size[1])
+        max_dist = np.sqrt(
+            self.size[0] * self.size[0] + self.size[1] * self.size[1])
         p_pos = self.objects["player"][self.player_turn]
-        angle_increment = 45 # Note: Should divide perfectly into 360
+        angle_increment = 45  # Note: Should divide perfectly into 360
 
         sorted_keys = sorted(self.objects.keys())
+        if self.belief:
+            sorted_keys = [
+                x for x in sorted_keys if x not in self.hidden_items]
+            sorted_keys.append("hidden")
         for k in sorted_keys:
             if k != "player":
 
                 # Sort by distance to the player so that nearer objects are represented earlier.
-                sorted_objects = sorted(self.objects[k], key=lambda x:p_pos.distance_to(x))
+                if k == "hidden":
+                    sorted_objects = []
+                    for obj in self.hidden_items:
+                        sorted_objects += self.objects[obj]
+                    sorted_objects = sorted(
+                        sorted_objects, key=lambda x: p_pos.distance_to(x))
+                else:
+                    sorted_objects = sorted(
+                        self.objects[k], key=lambda x: p_pos.distance_to(x))
 
                 for l_bound in range(-180, 180, angle_increment):
                     u_bound = l_bound + angle_increment
@@ -254,21 +264,25 @@ class CooperativeCraftWorldState():
                         if obj == p_pos:
                             obj_rep = 1.0
                         else:
-                            angle = int(math.degrees(math.atan2(obj.y - p_pos.y, obj.x - p_pos.x)))
+                            angle = int(math.degrees(math.atan2(
+                                obj.y - p_pos.y, obj.x - p_pos.x)))
                             if (angle >= l_bound and angle <= u_bound) or (angle - 360) == l_bound or (angle + 360) == u_bound:
-                                obj_rep = 1.0 - p_pos.distance_to(obj) / max_dist
+                                obj_rep = 1.0 - \
+                                    p_pos.distance_to(obj) / max_dist
                                 break
-                    
+
                     rep.append(obj_rep)
 
+        # ADD agent's inventory
         # Note: If recipes are added where required_count > 1, this will logic will need to be modified.
         sorted_keys = sorted(self.inventory[self.player_turn].keys())
         for k in sorted_keys:
             rep.append(min(self.inventory[self.player_turn][k], 1))
 
+        # ADD agent's step count
         rep.append(self.steps / self.max_steps)
-        return np.array(rep, dtype=np.float32)
 
+        return np.array(rep, dtype=np.float32)
 
     def render(self, use_delay=False, log_dir=None):
 
@@ -306,8 +320,8 @@ class CooperativeCraftWorldState():
 
 
 class CooperativeCraftWorld(gym.Env):
-    
-    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300):
+
+    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300, belief=False):
 
         global _num_spawned
         _num_spawned = scenario["num_spawned"]
@@ -322,13 +336,19 @@ class CooperativeCraftWorld(gym.Env):
         else:
             self.action_space = gym.spaces.Discrete(6)
 
-        self.state = CooperativeCraftWorldState(size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps)
+        hidden_items = []
+        if belief:
+            hidden_items = scenario["hidden_items"][0]
 
-        self.observation_space = gym.spaces.Box(low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)
+        self.state = CooperativeCraftWorldState(
+            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, belief=belief, hidden_items=hidden_items)
 
+        self.observation_space = gym.spaces.Box(
+            low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)
 
     # This 'step' is defined just to meet the requirements of gym.Env.
     # It returns a numpy array representation of the state based on an 'eye' encoding.
+
     def step(self, action):
         player_turn = self.state.player_turn
         reward = self.state.step(action)[player_turn]
@@ -338,9 +358,9 @@ class CooperativeCraftWorld(gym.Env):
             self.state.render(True)
 
         return self.state.getRepresentation(), reward, self.state.terminal, info
-        
 
     # This 'step' is used by scheduler_agent
+
     def step_full_state(self, action):
         reward = self.state.step(action)
         info = {}
@@ -349,7 +369,6 @@ class CooperativeCraftWorld(gym.Env):
             self.state.render(True)
 
         return self.state, reward, self.state.terminal, info
-
 
     def reset(self, agents, seed):
 

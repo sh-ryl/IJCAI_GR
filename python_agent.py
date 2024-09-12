@@ -13,6 +13,8 @@ from dqn import DQN_Config
 
 from goal_recogniser import GoalRecogniser
 
+import torch
+
 ctx = decimal.Context()
 ctx.prec = 20
 
@@ -112,12 +114,21 @@ if "regeneration" not in current_scenario:
 if "starting_items" not in current_scenario:
     current_scenario["starting_items"] = scenario.scenarios["default"]["starting_items"]
 
+if "hidden_items" not in current_scenario:
+    current_scenario["hidden_items"] = scenario.scenarios["default"]["hidden_items"]
+
 agent_params = {}
 
 if sys.argv[1] == "train":
     agent_params["test_mode"] = False
     n_agents = 1
-    gpu = 0
+    if torch.cuda.is_available():
+        gpu = 0
+        print("Training using CUDA")
+    else:
+        gpu = -1
+        print("Training using CPU")
+
 else:
     agent_params["test_mode"] = True
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
@@ -130,7 +141,7 @@ else:
     env_render = False
 
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False,
-                            render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps)
+                            render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, belief=True)
 # endregion
 
 # region PARAMETERS

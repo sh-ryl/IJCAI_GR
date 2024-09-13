@@ -130,18 +130,23 @@ if sys.argv[1] == "train":
         print("Training using CPU")
 
 else:
+    print("Testing with CPU")
     agent_params["test_mode"] = True
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
     gpu = -1  # Use CPU when not training
 
+env_render = False
+belief = False
 if len(sys.argv) > 2:
-    if sys.argv[2] == "render":
+    if "render" in sys.argv:
         env_render = True
-else:
-    env_render = False
+        print("Rendering environment")
+    if "belief" in sys.argv:
+        belief = True
+        print("Using hidden items")
 
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False,
-                            render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, belief=True)
+                            render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, belief=belief)
 # endregion
 
 # region PARAMETERS
@@ -156,6 +161,8 @@ agent_params["adam_beta2"] = 0.999
 # FILE I/O settings
 real_path = os.path.dirname(os.path.realpath(__file__))
 ag_models_folder = '/ag_model/'
+if belief:
+    ag_models_folder += 'belief/'
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
@@ -262,8 +269,7 @@ reset_all()
 # calculate probabilities
 # calculate goal scores
 
-if len(sys.argv) > 3:
-    if sys.argv[3] == "GR":
+if "GR" in sys.argv:
         gr_models_folder = '/gr_model/'
         model_dir = real_path + gr_models_folder
         print(f"GR model folder: {gr_models_folder}")
@@ -280,6 +286,7 @@ else:
 # endregion
 
 # region MAIN LOOP
+input("Start?")
 while frame_num < max_training_frames:
     a = agent.perceive(reward, state, episode_done, eval_running)
 

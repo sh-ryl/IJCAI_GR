@@ -19,9 +19,9 @@ _sprites = {
 }
 
 _max_inventory = {
-    "wood": 1,
-    "iron": 1,
-    "grass": 1,
+    "wood": 999,
+    "iron": 999,
+    "grass": 999,
     "gem": 999,
     "gold": 999
 }

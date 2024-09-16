@@ -84,7 +84,7 @@ class Screen():
 
 class CooperativeCraftWorldState():
 
-    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, hidden_items=[], IO_param=[]):
+    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, hidden_items=[], IO_param=[], ab_rating=[]):
         self.player_turn = 0
         self.action_space = action_space
         self.n_agents = n_agents
@@ -115,6 +115,8 @@ class CooperativeCraftWorldState():
                 "gem": 999,
                 "gold": 999
             }
+
+        self.ab_rating = ab_rating
 
     def step(self, action, assumed_reward_func=_reward):
 
@@ -164,17 +166,40 @@ class CooperativeCraftWorldState():
         # Check if we can craft
         if action == CRAFT:
             for k, v in _recipes.items():
+                # if player location is at a crafting location
                 if self.objects["player"][self.player_turn] in self.objects[v[0]]:
-
                     recipe_met = True
+
+                    # check if player's inventory contains required ingredient
                     for ingredient, required_count in v[1].items():
                         if self.inventory[self.player_turn][ingredient] < required_count:
                             recipe_met = False
                             break
 
                     if recipe_met:
+                        # get crafting probabilities
+                        r_craft = random.random()
+                        craft_prob = 1
+                        if len(self.ab_rating) > 0:
+                            craft_prob = self.elo(
+                                self.ab_rating['player'], self.ab_rating['craft'])
+
+                        # craft using items in inventory
                         for ingredient, required_count in v[1].items():
                             self.inventory[self.player_turn][ingredient] -= required_count
+
+                        # failed crafting, scatter collected items on the ground
+                        if r_craft > craft_prob:
+                            for ingredient, required_count in v[1].items():
+                                if ingredient in self._max_inventory:
+                                    # to check if it's ingredients collected from the ground (i.e. wood, iron)
+                                    # this will keep crafted ingredients (i.e. plank, stick) in inventory
+                                    for x in range(required_count):
+                                        self.objects[ingredient].append(
+                                            self.get_free_square())
+                            continue
+
+                        # update inventory when craft succeeds
                         self.inventory[self.player_turn][k] += 1
                         reward[self.player_turn] += assumed_reward_func[self.player_turn][k]
 
@@ -335,10 +360,15 @@ class CooperativeCraftWorldState():
         if use_delay:
             sleep(0.1)
 
+    def elo(self, ra, rb):
+        # the probability of a winning over b
+        # following elo rating formula
+        return 1/(1 + 10 ** ((rb - ra)/400))
+
 
 class CooperativeCraftWorld(gym.Env):
 
-    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300, IO_param=[]):
+    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300, IO_param=[], ab_rating=[]):
 
         global _num_spawned
         _num_spawned = scenario["num_spawned"]
@@ -358,7 +388,7 @@ class CooperativeCraftWorld(gym.Env):
             hidden_items = scenario["hidden_items"][0]
 
         self.state = CooperativeCraftWorldState(
-            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, hidden_items=hidden_items, IO_param=IO_param)
+            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, hidden_items=hidden_items, IO_param=IO_param, ab_rating=ab_rating)
 
         self.observation_space = gym.spaces.Box(
             low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)

@@ -139,9 +139,11 @@ env_render = False
 belief = False
 limit = False
 gr_obs = False
+ability = False
 
 IO_param_path = ''
 IO_param = sys.argv[2::]
+ab_rating = {}
 
 if "render" in IO_param:
     env_render = True
@@ -169,8 +171,16 @@ if "belief" in IO_param:
     print("Using hidden items")
     IO_param_path += 'belief/'
 
+if "ability" in IO_param:
+    ability = True
+    print("Using skills")
+    IO_param_path += 'skill/'
+    ab_rating['player'] = 100
+    ab_rating['craft'] = 100
+
+
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False, render=env_render,
-                            ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, IO_param=IO_param)
+                            ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, IO_param=IO_param, ab_rating=ab_rating)
 # endregion
 
 # region PARAMETERS
@@ -194,6 +204,10 @@ if belief:
     result_folder += "_hidden"
     for hi in current_scenario["hidden_items"][0]:
         result_folder += "_" + hi
+if ability:
+    result_folder += f"_level_{ab_rating['player']}_uniform"
+    # uniform rating for all crafting skills
+    # will look for ways to store skills with different difficulty ratings
 agent_params["log_dir"] = real_path + f'{result_folder}/'
 
 if not os.path.exists(agent_params["log_dir"]) and not gr_obs:

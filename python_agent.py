@@ -137,16 +137,40 @@ else:
 
 env_render = False
 belief = False
-if len(sys.argv) > 2:
-    if "render" in sys.argv:
-        env_render = True
-        print("Rendering environment")
-    if "belief" in sys.argv:
-        belief = True
-        print("Using hidden items")
+limit = False
+gr_obs = False
 
-env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False,
-                            render=env_render, ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, belief=belief)
+IO_param_path = ''
+IO_param = sys.argv[2::]
+
+if "render" in IO_param:
+    env_render = True
+    IO_param.remove('render')
+    print("Rendering environment ON")
+else:
+    print("Rendering environment OFF")
+
+if "GR" in IO_param:
+    gr_obs = True
+    IO_param.remove('GR')
+    print("GR Observer is ON")
+else:
+    print("GR Observer is OFF")
+
+if "limit" in IO_param:
+    limit = True
+    print("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1")
+    IO_param_path += 'limit/'
+else:
+    print("Max inventory is 999 for all ingredients")
+
+if "belief" in IO_param:
+    belief = True
+    print("Using hidden items")
+    IO_param_path += 'belief/'
+
+env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False, render=env_render,
+                            ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, IO_param=IO_param)
 # endregion
 
 # region PARAMETERS
@@ -160,14 +184,19 @@ agent_params["adam_beta2"] = 0.999
 
 # FILE I/O settings
 real_path = os.path.dirname(os.path.realpath(__file__))
-ag_models_folder = '/ag_model/'
-if belief:
-    ag_models_folder += 'belief/'
+
+# Agent I/O settings
+ag_models_folder = '/ag_model/' + IO_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
+if belief:
+    result_folder += "_hidden"
+    for hi in current_scenario["hidden_items"][0]:
+        result_folder += "_" + hi
 agent_params["log_dir"] = real_path + f'{result_folder}/'
-if not os.path.exists(agent_params["log_dir"]):
+
+if not os.path.exists(agent_params["log_dir"]) and not gr_obs:
     os.makedirs(agent_params["log_dir"])
 print(f"Agent model loaded: {result_folder}")
 
@@ -185,6 +214,17 @@ if agent_params["test_mode"]:
 
 agent_params["saved_model_dir"] = os.path.dirname(
     os.path.realpath(__file__)) + '/saved_models/'
+
+# Observer (GR) I/O Settings
+if gr_obs:
+    gr_models_folder = '/gr_model/'
+    model_dir = real_path + gr_models_folder
+    print(f"GR model folder: {gr_models_folder}")
+    goal_log_path = real_path + '/gr_log/' + \
+        goal_dic_to_str(goal_dic, inc_weight=False)  # doesn't include weight
+    if not os.path.exists(goal_log_path):
+        os.makedirs(goal_log_path)
+
 # DQN Settings
 agent_params["dqn_config"] = DQN_Config(
     env.observation_space.shape[0], env.action_space.n, gpu=gpu, noisy_nets=False, n_latent=64)
@@ -262,27 +302,11 @@ state = None
 reset_all()
 
 # region GR INIT
-# if test mode
-# create goal recogniser to load 3 models
-# for each step agent takes
-# for each model
-# calculate probabilities
-# calculate goal scores
 
-if "GR" in sys.argv:
-        gr_models_folder = '/gr_model/'
-        model_dir = real_path + gr_models_folder
-        print(f"GR model folder: {gr_models_folder}")
-        goal_log_path = real_path + '/gr_log/' + \
-            goal_dic_to_str(goal_dic, inc_weight=False)
-        if not os.path.exists(goal_log_path):
-            os.makedirs(goal_log_path)
-
-        GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir,
-                            dqn_config=agent_params["dqn_config"], log_dir=goal_log_path)
-        GR.set_external_agent(agent)
-else:
-    GR = None
+if gr_obs:
+    GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir,
+                        dqn_config=agent_params["dqn_config"], log_dir=goal_log_path, IO_param=IO_param)
+    GR.set_external_agent(agent)
 # endregion
 
 # region MAIN LOOP
@@ -292,7 +316,7 @@ while frame_num < max_training_frames:
 
     state, reward_list, episode_done, info = env.step_full_state(a)
 
-    if GR:
+    if gr_obs:
         GR.perceive(state, a)
 
     reward = reward_list[0]  # reward is list with length based on num_agents
@@ -368,6 +392,7 @@ while frame_num < max_training_frames:
 
     if env_render:
         print()
+        print(f"Agent model loaded: {result_folder}")
         print(f"Goal sets: {goal_dic.items()}")
         print(f"Total reward: {total_reward}")
         print(f"Timestep: {frame_num}")

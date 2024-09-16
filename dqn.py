@@ -14,6 +14,9 @@ class DQN_Config(object):
         self.noisy_nets = noisy_nets
         self.n_latent = n_latent
 
+    def set_state_size(self, state_size):
+        self.state_size = state_size
+
 
 class NoisyLinear(nn.Module):
 
@@ -23,8 +26,10 @@ class NoisyLinear(nn.Module):
         self.out_features = out_features
         self.std_init = std_init
         self.weight_mu = nn.Parameter(torch.empty(out_features, in_features))
-        self.weight_sigma = nn.Parameter(torch.empty(out_features, in_features))
-        self.register_buffer('weight_epsilon', torch.empty(out_features, in_features))
+        self.weight_sigma = nn.Parameter(
+            torch.empty(out_features, in_features))
+        self.register_buffer(
+            'weight_epsilon', torch.empty(out_features, in_features))
         self.bias_mu = nn.Parameter(torch.empty(out_features))
         self.bias_sigma = nn.Parameter(torch.empty(out_features))
         self.register_buffer('bias_epsilon', torch.empty(out_features))
@@ -34,9 +39,11 @@ class NoisyLinear(nn.Module):
     def reset_parameters(self):
         mu_range = 1 / math.sqrt(self.in_features)
         self.weight_mu.data.uniform_(-mu_range, mu_range)
-        self.weight_sigma.data.fill_(self.std_init / math.sqrt(self.in_features))
+        self.weight_sigma.data.fill_(
+            self.std_init / math.sqrt(self.in_features))
         self.bias_mu.data.uniform_(-mu_range, mu_range)
-        self.bias_sigma.data.fill_(self.std_init / math.sqrt(self.out_features))
+        self.bias_sigma.data.fill_(
+            self.std_init / math.sqrt(self.out_features))
 
     def _scale_noise(self, size):
         x = torch.randn(size)
@@ -57,7 +64,7 @@ class NoisyLinear(nn.Module):
 
 class DQN(nn.Module):
 
-    def __init__(self, config:DQN_Config):
+    def __init__(self, config: DQN_Config):
         super(DQN, self).__init__()
 
         self.device = torch.device("cuda" if config.gpu >= 0 else "cpu")
@@ -67,16 +74,20 @@ class DQN(nn.Module):
         else:
             lin = nn.Linear
 
-        self.fc1 = lin(in_features=config.state_size, out_features=config.n_latent).to(self.device)
+        self.fc1 = lin(in_features=config.state_size,
+                       out_features=config.n_latent).to(self.device)
 
-        self.fc2_a = lin(in_features=config.n_latent, out_features=int(config.n_latent/2)).to(self.device)
-        self.fc2_v = lin(in_features=config.n_latent, out_features=int(config.n_latent/2)).to(self.device)
+        self.fc2_a = lin(in_features=config.n_latent,
+                         out_features=int(config.n_latent/2)).to(self.device)
+        self.fc2_v = lin(in_features=config.n_latent,
+                         out_features=int(config.n_latent/2)).to(self.device)
 
-        self.fc3_a = lin(in_features=int(config.n_latent/2), out_features=config.n_actions).to(self.device)
-        self.fc3_v = lin(in_features=int(config.n_latent/2), out_features=config.n_actions).to(self.device)
+        self.fc3_a = lin(in_features=int(config.n_latent/2),
+                         out_features=config.n_actions).to(self.device)
+        self.fc3_v = lin(in_features=int(config.n_latent/2),
+                         out_features=config.n_actions).to(self.device)
 
         self.relu = nn.ReLU().to(self.device)
-
 
     def forward(self, x):
 

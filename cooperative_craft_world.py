@@ -18,14 +18,6 @@ _sprites = {
     "factory": 'F'
 }
 
-_max_inventory = {
-    "wood": 999,
-    "iron": 999,
-    "grass": 999,
-    "gem": 999,
-    "gold": 999
-}
-
 _num_spawned = None
 _reward = []
 
@@ -92,7 +84,7 @@ class Screen():
 
 class CooperativeCraftWorldState():
 
-    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, belief=False, hidden_items=[]):
+    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, hidden_items=[], IO_param=[]):
         self.player_turn = 0
         self.action_space = action_space
         self.n_agents = n_agents
@@ -100,9 +92,29 @@ class CooperativeCraftWorldState():
         self.size = size
         self.max_steps = max_steps
         self.reset()
-        self.belief = belief
-        if belief:
-            self.hidden_items = hidden_items
+
+        self.hidden_items = hidden_items
+
+        self.belief = False
+        if "belief" in IO_param:
+            self.belief = True
+
+        self._max_inventory = {
+            "wood": 999,
+            "iron": 999,
+            "grass": 999,
+            "gem": 999,
+            "gold": 999
+        }
+
+        if "limit" in IO_param:
+            self._max_inventory = {
+                "wood": 1,
+                "iron": 1,
+                "grass": 1,
+                "gem": 999,
+                "gold": 999
+            }
 
     def step(self, action, assumed_reward_func=_reward):
 
@@ -126,7 +138,7 @@ class CooperativeCraftWorldState():
 
         # Check if we can pick up an item
         if action == COLLECT:
-            for k in _max_inventory.keys():
+            for k in self._max_inventory.keys():
 
                 can_pick_up = True
 
@@ -139,7 +151,7 @@ class CooperativeCraftWorldState():
                 if not can_pick_up:
                     continue
 
-                if self.inventory[self.player_turn][k] < _max_inventory[k]:
+                if self.inventory[self.player_turn][k] < self._max_inventory[k]:
                     for pos in self.objects[k]:
                         if self.objects["player"][self.player_turn].x == pos.x and self.objects["player"][self.player_turn].y == pos.y:
                             self.inventory[self.player_turn][k] += 1
@@ -227,7 +239,7 @@ class CooperativeCraftWorldState():
         self.terminal = False
         self.steps = 0
 
-    def getRepresentation(self):
+    def getRepresentation(self, gr_obs=False, gr_param=[]):
 
         # ADD objects on the environment
         rep = []
@@ -237,10 +249,15 @@ class CooperativeCraftWorldState():
         angle_increment = 45  # Note: Should divide perfectly into 360
 
         sorted_keys = sorted(self.objects.keys())
-        if self.belief:
+        if (self.belief and not gr_obs):
             sorted_keys = [
                 x for x in sorted_keys if x not in self.hidden_items]
             sorted_keys.append("hidden")
+        if "belief" in gr_param:
+            sorted_keys = [
+                x for x in sorted_keys if x not in gr_param['belief']]
+            sorted_keys.append("hidden")
+
         for k in sorted_keys:
             if k != "player":
 
@@ -321,7 +338,7 @@ class CooperativeCraftWorldState():
 
 class CooperativeCraftWorld(gym.Env):
 
-    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300, belief=False):
+    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300, IO_param=[]):
 
         global _num_spawned
         _num_spawned = scenario["num_spawned"]
@@ -337,11 +354,11 @@ class CooperativeCraftWorld(gym.Env):
             self.action_space = gym.spaces.Discrete(6)
 
         hidden_items = []
-        if belief:
+        if "belief" in IO_param:
             hidden_items = scenario["hidden_items"][0]
 
         self.state = CooperativeCraftWorldState(
-            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, belief=belief, hidden_items=hidden_items)
+            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, hidden_items=hidden_items, IO_param=IO_param)
 
         self.observation_space = gym.spaces.Box(
             low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)
@@ -357,7 +374,9 @@ class CooperativeCraftWorld(gym.Env):
         if self.render:
             self.state.render(True)
 
-        return self.state.getRepresentation(), reward, self.state.terminal, info
+        ag_state = self.state.getRepresentation()
+
+        return ag_state, reward, self.state.terminal, info
 
     # This 'step' is used by scheduler_agent
 
@@ -368,7 +387,9 @@ class CooperativeCraftWorld(gym.Env):
         if self.render:
             self.state.render(True)
 
-        return self.state, reward, self.state.terminal, info
+        ag_state = self.state
+
+        return ag_state, reward, self.state.terminal, info
 
     def reset(self, agents, seed):
 

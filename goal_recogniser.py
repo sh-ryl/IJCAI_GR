@@ -11,31 +11,9 @@ import os
 import re
 
 
-def find_folders(directory, required_objects):
-    pattern = r'([a-zA-Z]+_\d+\.?\d*)'
-    trained_model_paths = []
-    trained_model_goal_dics = []
-
-    # Iterate through the directory
-    for root, dirs, files in os.walk(directory):
-        for folder_name in dirs:
-            matches = [x.split('_') for x in re.findall(pattern, folder_name)]
-            obj_list = [x[0] for x in matches]
-            weight_list = [x[1] for x in matches]
-            if set(obj_list) == set(required_objects):
-                trained_model_paths.append(folder_name)
-                trained_model_goal_dic = {}
-                for obj in required_objects:
-                    trained_model_goal_dic[obj] = weight_list[obj_list.index(
-                        obj)]
-                trained_model_goal_dics.append(trained_model_goal_dic)
-
-    return trained_model_paths, trained_model_goal_dics
-
-
 class GoalRecogniser(object):
 
-    def __init__(self, goal_list=[], model_temperature=0.01, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None):
+    def __init__(self, goal_list=[], model_temperature=0.01, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, IO_param=[]):
 
         self.saved_model_dir = saved_model_dir
         self.model_temperature = model_temperature
@@ -52,20 +30,27 @@ class GoalRecogniser(object):
 
         self.goal_list = goal_list
 
-        self.trained_model_paths, self.trained_model_goal_dics = find_folders(
+        self.IO_param = IO_param
+
+        self.trained_model_paths, self.trained_model_goal_dics, self.trained_model_param = self.find_folders(
             self.saved_model_dir, self.goal_list)
 
         self.trained_models = []
         self.tm_scores = []
         for i in range(len(self.trained_model_paths)):
-            model_file = f'{self.saved_model_dir}/{self.trained_model_paths[i]}/model.chk'
+            model_file = f'{self.trained_model_paths[i]}/model.chk'
             checkpoint = torch.load(model_file, map_location=self.device)
+
+            self.dqn_config.set_state_size(
+                checkpoint['model_state_dict']['fc1.weight'].size()[1])
+
             self.trained_models.append(DQN(self.dqn_config))
+
             self.trained_models[i].load_state_dict(
                 checkpoint['model_state_dict'])
             self.tm_scores.append(0)
         print(f"GR model loaded: {self.trained_model_paths}")
-        input()
+        print(f"param {self.trained_model_param}")
 
     def set_external_agent(self, other_agent: agent.Agent):
 
@@ -90,9 +75,10 @@ class GoalRecogniser(object):
         self.current_hypothesis = None
         self.step_number = 0
 
-    def calculate_kl_divergence(self, model_no, state: CooperativeCraftWorldState, observed_action: int, max_value=100.0):
+    def calculate_kl_divergence(self, model_no, state, observed_action: int, max_value=100.0):
 
-        state = torch.from_numpy(state.getRepresentation()).float().to(
+        state = torch.from_numpy(state.getRepresentation(gr_obs=True,
+                                                         gr_param=self.trained_model_param[model_no])).float().to(
             self.device).unsqueeze(0)
         q = self.trained_models[model_no].forward(
             state).cpu().detach().squeeze()
@@ -109,9 +95,10 @@ class GoalRecogniser(object):
         result = result / result.sum(axis=0, keepdims=1)
         return result
 
-    def perceive(self, state: CooperativeCraftWorldState, action: int):
+    def perceive(self, state, action: int):
 
         for i in range(len(self.trained_models)):
+            print('Model no', i, self.trained_model_paths[i])
             kl_div = self.calculate_kl_divergence(i, state, action)
             self.tm_scores[i] += kl_div
             print(
@@ -183,3 +170,40 @@ class GoalRecogniser(object):
         for i in range(1, len(selected_goals)):
             self.current_hypothesis = self.current_hypothesis + \
                 "_and_" + selected_goals[i]
+
+    def find_folders(self, directory, required_objects):
+        pattern = r'([a-zA-Z]+_-*\d+\.?\d*)'
+        trained_models_path = []
+        trained_models_goal_dic = []
+        trained_models_param = []
+
+        # Iterate through the directory
+        for root, dirs, files in os.walk(directory):
+            # Get the directory name before the subdirectory
+            base_folder = root.strip('/').split('/')[-1]
+
+            for folder_name in dirs:
+                # filter out other folders
+                matches = [x.split('_')
+                           for x in re.findall(pattern, folder_name)]
+                obj_list = [x[0] for x in matches]
+                weight_list = [x[1] for x in matches]
+
+                if set(obj_list) == set(required_objects):
+                    tm_goal_dic = {}
+                    tm_param = []
+
+                    # get goal dic
+                    for obj in required_objects:
+                        tm_goal_dic[obj] = weight_list[obj_list.index(
+                            obj)]
+
+                    # get param
+                    if base_folder == "belief":
+                        tm_param.append('belief')
+
+                    trained_models_path.append(root+'/'+folder_name)
+                    trained_models_goal_dic.append(tm_goal_dic)
+                    trained_models_param.append(tm_param)
+
+        return trained_models_path, trained_models_goal_dic, trained_models_param

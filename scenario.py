@@ -69,7 +69,8 @@ scenarios["default"]["hidden_items"] = [
 scenarios["train"] = {}
 
 scenarios["train"]["goal_sets"] = [
-    {"iron": 0.7, "wood": 1, "grass": -1}
+    {"axe": 1, "bridge": 0.1}
+    # {"iron": 0.7, "wood": 1, "grass": -1}
 ]
 
 scenarios["eval"] = {}

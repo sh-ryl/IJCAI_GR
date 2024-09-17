@@ -196,7 +196,7 @@ agent_params["adam_beta2"] = 0.999
 real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
-ag_models_folder = '/ag_model/' + IO_param_path
+ag_models_folder = '/gr_model/' + IO_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)

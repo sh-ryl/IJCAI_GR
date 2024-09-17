@@ -9,6 +9,7 @@ from dialog import Dialog
 
 import os
 import re
+from copy import deepcopy
 
 
 class GoalRecogniser(object):
@@ -23,7 +24,6 @@ class GoalRecogniser(object):
         self.log_dir = log_dir
         self.first_log_write = True
         self.step_number = 0
-        self.dqn_config = dqn_config
 
         self.device = torch.device("cuda" if dqn_config.gpu >= 0 else "cpu")
         self.probability_plot = Dialog()
@@ -36,21 +36,21 @@ class GoalRecogniser(object):
             self.saved_model_dir, self.goal_list)
 
         self.trained_models = []
-        self.tm_scores = []
+        self.tm_scores = [0] * len(self.trained_model_paths)
+        self.tm_state_size = [0] * len(self.trained_model_paths)
         for i in range(len(self.trained_model_paths)):
             model_file = f'{self.trained_model_paths[i]}/model.chk'
             checkpoint = torch.load(model_file, map_location=self.device)
 
-            self.dqn_config.set_state_size(
-                checkpoint['model_state_dict']['fc1.weight'].size()[1])
+            tm_state_size = checkpoint['model_state_dict']['fc1.weight'].size()[1]
+            tm_dqn_config = dqn_config # deepcopy(dqn_config) # perhaps not using deepcopy would save mems, idk :p
+            tm_dqn_config.set_state_size(tm_state_size)
 
-            self.trained_models.append(DQN(self.dqn_config))
+            self.trained_models.append(DQN(tm_dqn_config))
 
             self.trained_models[i].load_state_dict(
                 checkpoint['model_state_dict'])
-            self.tm_scores.append(0)
-        print(f"GR model loaded: {self.trained_model_paths}")
-        print(f"param {self.trained_model_param}")
+            print(f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
 
     def set_external_agent(self, other_agent: agent.Agent):
 
@@ -76,8 +76,6 @@ class GoalRecogniser(object):
         self.step_number = 0
 
     def calculate_kl_divergence(self, model_no, state, observed_action: int, max_value=100.0):
-        print(state.getRepresentation(gr_obs=True,
-                                      gr_param=self.trained_model_param[model_no]).shape)
         state = torch.from_numpy(state.getRepresentation(gr_obs=True,
                                                          gr_param=self.trained_model_param[model_no])).float().to(
             self.device).unsqueeze(0)
@@ -180,7 +178,10 @@ class GoalRecogniser(object):
         # Iterate through the directory
         for root, dirs, files in os.walk(directory):
             # Get the directory name before the subdirectory
-            base_folder = root.strip('/').split('/')[-1]
+            base_folder = root.strip('/').strip('\\').split('/')[-1]
+            if "\\" in base_folder: # to run this on windows because they don't follow unix style ZZZ
+                base_folder = base_folder.split("\\")[-1]
+                                    
 
             for folder_name in dirs:
                 # filter out other folders
@@ -210,3 +211,6 @@ class GoalRecogniser(object):
                     trained_models_param.append(tm_param)
 
         return trained_models_path, trained_models_goal_dic, trained_models_param
+
+    def reset(self):
+        self.tm_scores = [0] * len(self.trained_model_paths)

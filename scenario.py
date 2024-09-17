@@ -75,7 +75,7 @@ scenarios["train"]["goal_sets"] = [
 
 scenarios["eval"] = {}
 scenarios["eval"]["goal_sets"] = [
-    # {"iron": 0.7, "wood": -1, "grass": 1}
+    {"iron": 0.7, "wood": -1, "grass": 1}
 ]
 
 #########################

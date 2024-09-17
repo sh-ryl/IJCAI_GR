@@ -145,6 +145,7 @@ belief = False
 limit = False
 gr_obs = False
 ability = False
+uvfa = False
 
 IO_param_path = ''
 IO_param = sys.argv[2::]
@@ -170,6 +171,13 @@ if "limit" in IO_param:
     IO_param_path += 'limit/'
 else:
     print("Max inventory is 999 for all ingredients")
+
+if "uvfa" in IO_param:
+    uvfa = True
+    print("UVFA is ON")
+    IO_param_path += 'uvfa/'
+else:
+    print("UVFA is OFF")
 
 if "belief" in IO_param:
     belief = True
@@ -205,6 +213,8 @@ ag_models_folder = '/gr_model/' + IO_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
+if uvfa:
+    result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=False)
 if belief:
     result_folder += "_hidden"
     for hi in current_scenario["hidden_items"][0]:
@@ -295,6 +305,8 @@ eval_start_time = 1000000
 eval_running = False  # different than test_mode in agent config
 frame_num = 0
 max_training_frames = 10000000  # 999999999
+if uvfa:
+    max_training_frames = 999999999
 steps_since_eval_ran = 0
 steps_since_eval_began = 0
 eval_total_score = 0
@@ -380,7 +392,7 @@ while frame_num < max_training_frames:
         if gr_obs and not env_render: # pause before going to the next episode for gr obs
             print(f"Agent model loaded: {result_folder}")
             input()
-            
+
         reset_all()
 
         # Model evaluation (only during Training)

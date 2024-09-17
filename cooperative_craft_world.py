@@ -324,6 +324,11 @@ class CooperativeCraftWorldState():
         # ADD agent's step count
         rep.append(self.steps / self.max_steps)
 
+        # ADD reward
+        if "uvfa" in _reward:
+            for item in sorted_keys:
+                rep.append(_reward[self.player_turn][item])
+    
         return np.array(rep, dtype=np.float32)
 
     def render(self, use_delay=False, log_dir=None):
@@ -392,6 +397,8 @@ class CooperativeCraftWorld(gym.Env):
 
         self.observation_space = gym.spaces.Box(
             low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)
+        
+        self.IO_param = IO_param
 
     # This 'step' is defined just to meet the requirements of gym.Env.
     # It returns a numpy array representation of the state based on an 'eye' encoding.
@@ -428,9 +435,18 @@ class CooperativeCraftWorld(gym.Env):
         for agent in agents:
             reward_dic = {}
 
+            # get randomized number sum to 1 for uvfa rewards
+            if "uvfa" in self.IO_param:
+                reward_list = np.random.dirichlet(np.ones(len(agent.goal_set.keys())))
+                reward_dic["uvfa"] = 0 # VERY HACKY FLAG :) so that state can know which one has uvfa
+
             for item in _rewardable_items:
                 if item in agent.goal_set.keys():
-                    reward_dic[item] = agent.goal_set[item]
+                    if "uvfa" in self.IO_param:
+                        item_id = list(agent.goal_set.keys()).index(item)
+                        reward_dic[item] = reward_list[item_id]
+                    else:
+                        reward_dic[item] = agent.goal_set[item]
                 else:
                     reward_dic[item] = 0
 

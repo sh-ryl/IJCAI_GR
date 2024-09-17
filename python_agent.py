@@ -15,6 +15,8 @@ from goal_recogniser import GoalRecogniser
 
 import torch
 
+from copy import deepcopy
+
 ctx = decimal.Context()
 ctx.prec = 20
 
@@ -48,7 +50,7 @@ def goal_dic_to_str(goal_dic, inc_weight):
 
 def reset_all():
 
-    global agent, total_reward, num_trials, seed, state
+    global agent, total_reward, num_trials, seed, state, gr_obs, GR
 
     num_trials += 1
 
@@ -68,6 +70,9 @@ def reset_all():
     # will only reset with model file if it's on evaluation mode
 
     state = env.reset([agent], seed)
+
+    if gr_obs:
+        GR.reset()
 
     # Give starting items (if applicable).
     for i in range(len([agent])):
@@ -196,7 +201,7 @@ agent_params["adam_beta2"] = 0.999
 real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
-ag_models_folder = '/ag_model/' + IO_param_path
+ag_models_folder = '/gr_model/' + IO_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
@@ -231,7 +236,7 @@ agent_params["saved_model_dir"] = os.path.dirname(
 
 # Observer (GR) I/O Settings
 if gr_obs:
-    gr_models_folder = '/gr_model/'
+    gr_models_folder = '/ag_model/'
     model_dir = real_path + gr_models_folder
     print(f"GR model folder: {gr_models_folder}")
     goal_log_path = real_path + '/gr_log/' + \
@@ -313,15 +318,18 @@ seed = -1
 state = None
 # endregion
 
-reset_all()
-
 # region GR INIT
 
 if gr_obs:
+    gr_dqn_config = deepcopy(agent_params["dqn_config"]) # creates a separate config for gr and agent
     GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir,
-                        dqn_config=agent_params["dqn_config"], log_dir=goal_log_path, IO_param=IO_param)
-    GR.set_external_agent(agent)
+                        dqn_config=gr_dqn_config, log_dir=goal_log_path, IO_param=IO_param)
 # endregion
+
+reset_all()
+
+if gr_obs:
+    GR.set_external_agent(agent)
 
 # region MAIN LOOP
 input("Start?")
@@ -361,14 +369,18 @@ while frame_num < max_training_frames:
                 score_str = score_str + ', ' + \
                     agent.name + ": " + str(total_reward)
 
-            print('Time step: ' + str(frame_num) +
-                  ', ep scores:' + score_str[1:])
+            if not gr_obs: # if gr is off then print as normal
+                print('Time step: ' + str(frame_num) + ', ep scores:' + score_str[1:])
 
             if agent_params["test_mode"]:
                 with open(agent_params["log_dir"] + testing_scores_file, 'a') as fd:
                     fd.write("'" + float_to_str(seed) + ',' +
                              agent.name + ',' + str(total_reward) + '\n')
 
+        if gr_obs and not env_render: # pause before going to the next episode for gr obs
+            print(f"Agent model loaded: {result_folder}")
+            input()
+            
         reset_all()
 
         # Model evaluation (only during Training)
@@ -403,6 +415,10 @@ while frame_num < max_training_frames:
 
                 eval_running = False
                 steps_since_eval_began = 0
+
+    if gr_obs and not env_render:
+        print('Time step: ' + str(frame_num) + ', total reward:' + str(total_reward))
+        print()
 
     if env_render:
         print()

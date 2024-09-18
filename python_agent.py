@@ -20,7 +20,7 @@ from copy import deepcopy
 ctx = decimal.Context()
 ctx.prec = 20
 
-# region HELPER FUNCTIONS
+# region HELPER FUNC
 
 
 def float_to_str(f):
@@ -88,7 +88,7 @@ def reset_all():
 # endregion
 
 
-# region ENV INIT
+# region EXP PARAM
 if len(sys.argv) < 2:
     print('Usage:', sys.argv[0], 'scenario')
     sys.exit()
@@ -190,13 +190,13 @@ if "ability" in IO_param:
     IO_param_path += 'skill/'
     ab_rating['player'] = 100
     ab_rating['craft'] = 100
+# endregion
 
-
+# region ENV INIT
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False, render=env_render,
                             ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, IO_param=IO_param, ab_rating=ab_rating)
 # endregion
 
-# region PARAMETERS
 agent_params["agent_type"] = "dqn"
 
 # OPTIMIZER settings
@@ -205,16 +205,19 @@ agent_params["adam_eps"] = 0.00015
 agent_params["adam_beta1"] = 0.9
 agent_params["adam_beta2"] = 0.999
 
+# region I/O SETTINGS
 # FILE I/O settings
 real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
-ag_models_folder = '/ag_model/' + IO_param_path
+ag_models_root = '/gr_model/'
+ag_models_folder = ag_models_root + IO_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
 if uvfa:
-    result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=False)
+    result_folder = ag_models_folder + \
+        goal_dic_to_str(goal_dic, inc_weight=False)
 if belief:
     result_folder += "_hidden"
     for hi in current_scenario["hidden_items"][0]:
@@ -246,15 +249,17 @@ agent_params["saved_model_dir"] = os.path.dirname(
 
 # Observer (GR) I/O Settings
 if gr_obs:
-    gr_models_folder = '/ag_model/'
+    gr_models_root = '/gr_model/'
+    gr_models_folder = gr_models_root
     model_dir = real_path + gr_models_folder
     print(f"GR model folder: {gr_models_folder}")
     goal_log_path = real_path + '/gr_log/' + \
         goal_dic_to_str(goal_dic, inc_weight=False)  # doesn't include weight
     if not os.path.exists(goal_log_path):
         os.makedirs(goal_log_path)
+# endregion
 
-# DQN Settings
+# region DQN Settings
 agent_params["dqn_config"] = DQN_Config(
     env.observation_space.shape[0], env.action_space.n, gpu=gpu, noisy_nets=False, n_latent=64)
 
@@ -333,7 +338,8 @@ state = None
 # region GR INIT
 
 if gr_obs:
-    gr_dqn_config = deepcopy(agent_params["dqn_config"]) # creates a separate config for gr and agent
+    # creates a separate config for gr and agent
+    gr_dqn_config = deepcopy(agent_params["dqn_config"])
     GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir,
                         dqn_config=gr_dqn_config, log_dir=goal_log_path, IO_param=IO_param)
 # endregion
@@ -345,10 +351,21 @@ if gr_obs:
 
 # region MAIN LOOP
 input("Start?")
+
+hi_collect_count = 0
 while frame_num < max_training_frames:
     a = agent.perceive(reward, state, episode_done, eval_running)
 
+    # get count of picking up grass
+    grass_ep_count = state.inventory[0]["grass"]
+    wood_ep_count = state.inventory[0]["wood"]
+
     state, reward_list, episode_done, info = env.step_full_state(a)
+
+    if state.inventory[0]["grass"] > grass_ep_count:
+        hi_collect_count += 1
+    if state.inventory[0]["wood"] > grass_ep_count:
+        hi_collect_count += 1
 
     if gr_obs:
         GR.perceive(state, a)
@@ -363,7 +380,35 @@ while frame_num < max_training_frames:
         steps_since_eval_ran += 1
         frame_num += 1
 
+    # print results
+
+    if env_render or gr_obs:
+        if gr_obs:
+            print("Inferred model:", GR.get_inference())
+            print()
+
+        print("Inventory")
+        print(
+            {key: val for key, val in state.inventory[0].items() if val > 0})
+        print()
+
+        print("Agent")
+        print(f"root folder \t goal sets \t\t\t\t param")
+        print(f"{ag_models_root} \t {goal_dic} \t {IO_param}")
+        print()
+
+        print(f"Timestep: {frame_num} \t Total reward: {total_reward}")
+        print("---------------------------------------------")
+        print()
+
+        if env_render:
+            input()
+
+    # handle episode done
     if episode_done:
+        if gr_obs and not env_render:
+            input()
+
         if eval_running:  # This is only run during training
             print('Evaluation time step: ' + str(steps_since_eval_began) +
                   ', episode ended with score: ' + str(total_reward))
@@ -381,17 +426,14 @@ while frame_num < max_training_frames:
                 score_str = score_str + ', ' + \
                     agent.name + ": " + str(total_reward)
 
-            if not gr_obs: # if gr is off then print as normal
-                print('Time step: ' + str(frame_num) + ', ep scores:' + score_str[1:])
+            if not gr_obs and not env_render:  # if gr is off then print as normal
+                print('Time step: ' + str(frame_num) +
+                      ', ep scores:' + score_str[1:])
 
             if agent_params["test_mode"]:
                 with open(agent_params["log_dir"] + testing_scores_file, 'a') as fd:
                     fd.write("'" + float_to_str(seed) + ',' +
                              agent.name + ',' + str(total_reward) + '\n')
-
-        if gr_obs and not env_render: # pause before going to the next episode for gr obs
-            print(f"Agent model loaded: {result_folder}")
-            input()
 
         reset_all()
 
@@ -427,17 +469,5 @@ while frame_num < max_training_frames:
 
                 eval_running = False
                 steps_since_eval_began = 0
-
-    if gr_obs and not env_render:
-        print('Time step: ' + str(frame_num) + ', total reward:' + str(total_reward))
-        print()
-
-    if env_render:
-        print()
-        print(f"Agent model loaded: {result_folder}")
-        print(f"Goal sets: {goal_dic.items()}")
-        print(f"Total reward: {total_reward}")
-        print(f"Timestep: {frame_num}")
-        input()
 
 # endregion

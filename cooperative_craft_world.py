@@ -328,7 +328,7 @@ class CooperativeCraftWorldState():
         if "uvfa" in _reward:
             for item in sorted_keys:
                 rep.append(_reward[self.player_turn][item])
-    
+
         return np.array(rep, dtype=np.float32)
 
     def render(self, use_delay=False, log_dir=None):
@@ -345,8 +345,8 @@ class CooperativeCraftWorldState():
             inv_str = k + ":"
             for agent_num in range(0, self.n_agents):
                 inv_str = inv_str + " " + str(self.inventory[agent_num][k])
-
-            print_or_log(inv_str, filename)
+            if filename:
+                print_or_log(inv_str, filename)
 
         print_or_log("", filename)
 
@@ -361,6 +361,8 @@ class CooperativeCraftWorldState():
                     screen.add_sprite(pos, _sprites[k])
 
         screen.render(filename)
+
+        print()
 
         if use_delay:
             sleep(0.1)
@@ -397,7 +399,7 @@ class CooperativeCraftWorld(gym.Env):
 
         self.observation_space = gym.spaces.Box(
             low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)
-        
+
         self.IO_param = IO_param
 
     # This 'step' is defined just to meet the requirements of gym.Env.
@@ -437,8 +439,10 @@ class CooperativeCraftWorld(gym.Env):
 
             # get randomized number sum to 1 for uvfa rewards
             if "uvfa" in self.IO_param:
-                reward_list = np.random.dirichlet(np.ones(len(agent.goal_set.keys())))
-                reward_dic["uvfa"] = 0 # VERY HACKY FLAG :) so that state can know which one has uvfa
+                reward_list = np.random.dirichlet(
+                    np.ones(len(agent.goal_set.keys())))
+                # VERY HACKY FLAG :) so that state can know which one has uvfa
+                reward_dic["uvfa"] = 0
 
             for item in _rewardable_items:
                 if item in agent.goal_set.keys():

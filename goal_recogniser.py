@@ -11,6 +11,8 @@ import os
 import re
 from copy import deepcopy
 
+from itertools import chain
+
 
 class GoalRecogniser(object):
 
@@ -42,15 +44,18 @@ class GoalRecogniser(object):
             model_file = f'{self.trained_model_paths[i]}/model.chk'
             checkpoint = torch.load(model_file, map_location=self.device)
 
-            tm_state_size = checkpoint['model_state_dict']['fc1.weight'].size()[1]
-            tm_dqn_config = dqn_config # deepcopy(dqn_config) # perhaps not using deepcopy would save mems, idk :p
+            tm_state_size = checkpoint['model_state_dict']['fc1.weight'].size()[
+                1]
+            # deepcopy(dqn_config) # perhaps not using deepcopy would save mems, idk :p
+            tm_dqn_config = dqn_config
             tm_dqn_config.set_state_size(tm_state_size)
 
             self.trained_models.append(DQN(tm_dqn_config))
 
             self.trained_models[i].load_state_dict(
                 checkpoint['model_state_dict'])
-            print(f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
+            print(
+                f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
 
     def set_external_agent(self, other_agent: agent.Agent):
 
@@ -82,8 +87,7 @@ class GoalRecogniser(object):
         q = self.trained_models[model_no].forward(
             state).cpu().detach().squeeze()
         probs = F.softmax(q.div(self.model_temperature), dim=0)
-        print(f'KL_Div Softmax probabilities,{probs}')
-        return min(probs[observed_action].pow(-1).log().item(), max_value)
+        return min(probs[observed_action].pow(-1).log().item(), max_value), probs
 
     def softmax(self, x, temperature):
 
@@ -95,13 +99,15 @@ class GoalRecogniser(object):
         return result
 
     def perceive(self, state, action: int):
-
+        print("GR observer")
+        print(
+            f"No.\t{'Score':<10} {'Parameters': <40} {'Goal set': <50} Action Probabilities")
         for i in range(len(self.trained_models)):
-            print('Model no', i, self.trained_model_paths[i])
-            kl_div = self.calculate_kl_divergence(i, state, action)
+            kl_div, act_probs = self.calculate_kl_divergence(i, state, action)
             self.tm_scores[i] += kl_div
+            act_probs = [round(x, 3) for x in act_probs.tolist()]
             print(
-                f"KL_DIV Model {self.trained_model_goal_dics[i]}, {self.tm_scores[i]}")
+                f"{i}\t{round(self.tm_scores[i], 3):<10} {str(self.trained_model_param[i]): <40} {str(self.trained_model_goal_dics[i]): <50} {str(act_probs)}")
         # if self.show_graph and self.moving_avg_updates == 0:
         #     self.probability_plot.add_data_point("moving_kl_div", 0, np.zeros_like(self.total_kl_moving_avg) * (1.0 / len(self.other_agent.externally_visible_goal_sets)), False, True)
 
@@ -174,14 +180,10 @@ class GoalRecogniser(object):
         trained_models_path = []
         trained_models_goal_dic = []
         trained_models_param = []
+        param_set = {"limit", "belief", "uvfa", "skill"}
 
         # Iterate through the directory
         for root, dirs, files in os.walk(directory):
-            # Get the directory name before the subdirectory
-            base_folder = root.strip('/').strip('\\').split('/')[-1]
-            if "\\" in base_folder: # to run this on windows because they don't follow unix style ZZZ
-                base_folder = base_folder.split("\\")[-1]
-                                    
 
             for folder_name in dirs:
                 # filter out other folders
@@ -192,8 +194,15 @@ class GoalRecogniser(object):
                 weight_list = [x[1] for x in matches]
 
                 if set(obj_list) == set(required_objects):
-                    tm_goal_dic = {}
                     tm_param = {}
+                    # Get the directory name before the subdirectory
+                    # to split "\" because windows don't follow unix style
+                    base_folder = list(chain.from_iterable(
+                        [x.split("\\") for x in root.split('/')]))
+                    for param in param_set.intersection(base_folder):
+                        tm_param[param] = ''
+
+                    tm_goal_dic = {}
 
                     # get goal dic
                     for obj in required_objects:
@@ -201,7 +210,7 @@ class GoalRecogniser(object):
                             obj)]
 
                     # get param
-                    if base_folder == "belief":
+                    if "belief" in tm_param:
                         pattern = r'_hidden_([a-zA-Z]*)_([a-zA-Z]*)'
                         result = re.findall(pattern, folder_name)[0]
                         tm_param['belief'] = result
@@ -214,3 +223,14 @@ class GoalRecogniser(object):
 
     def reset(self):
         self.tm_scores = [0] * len(self.trained_model_paths)
+
+    def get_inference(self):
+        temp_min = max(self.tm_scores)
+        temp_min_id = 0
+
+        for i in range(len(self.tm_scores)):
+            if self.tm_scores[i] < temp_min:
+                temp_min = self.tm_scores[i]
+                temp_min_id = i
+
+        return temp_min_id

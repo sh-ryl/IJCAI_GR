@@ -32,8 +32,7 @@ scenarios["default"]["hidden_items"] = [
 
 # RL training/testing scenario
 
-# Choose weights
-
+# region WEIGHT
 # Goal preferences
 # {"cloth": 0.1, "stick": 0.9}
 # {"cloth": 0.2, "stick": 0.8}
@@ -69,11 +68,12 @@ scenarios["default"]["hidden_items"] = [
 
 # UVFA
 # {"cloth": 0, "stick": 0}
+# endregion
 
 scenarios["train"] = {}
 
 scenarios["train"]["goal_sets"] = [
-    {"axe": 1, "bridge": 0.8}
+    {"hehe": 1}
 ]
 
 scenarios["eval"] = {}

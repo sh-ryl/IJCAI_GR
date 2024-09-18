@@ -65,14 +65,15 @@ scenarios["default"]["hidden_items"] = [
 
 # Skill
 # {"axe": 1, "bridge": 0.1}
+# {"axe": 1, "bridge": 0.8}
 
 # UVFA
-# {"cloth": 0, "plank": 0}
+# {"cloth": 0, "stick": 0}
 
 scenarios["train"] = {}
 
 scenarios["train"]["goal_sets"] = [
-    {"cloth": 0, "plank": 0}
+    {"axe": 1, "bridge": 0.8}
 ]
 
 scenarios["eval"] = {}

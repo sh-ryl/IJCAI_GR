@@ -13,10 +13,13 @@ from copy import deepcopy
 
 from itertools import chain
 
+import pandas as pd
+import matplotlib.pyplot as plt
+
 
 class GoalRecogniser(object):
 
-    def __init__(self, goal_list=[], model_temperature=0.01, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, IO_param=[]):
+    def __init__(self, goal_list=[], model_temperature=0.01, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, IO_param=[], max_steps=100):
 
         self.saved_model_dir = saved_model_dir
         self.model_temperature = model_temperature
@@ -26,6 +29,7 @@ class GoalRecogniser(object):
         self.log_dir = log_dir
         self.first_log_write = True
         self.step_number = 0
+        self.max_steps = max_steps
 
         self.device = torch.device("cuda" if dqn_config.gpu >= 0 else "cpu")
         self.probability_plot = Dialog()
@@ -39,7 +43,10 @@ class GoalRecogniser(object):
 
         self.trained_models = []
         self.tm_scores = [0] * len(self.trained_model_paths)
+        self.tm_total_scores_each_step = [[0 for y in range(
+            len(self.trained_model_paths))]for x in range(max_steps)]  # 100 for max timestep
         self.tm_state_size = [0] * len(self.trained_model_paths)
+
         for i in range(len(self.trained_model_paths)):
             model_file = f'{self.trained_model_paths[i]}/model.chk'
             checkpoint = torch.load(model_file, map_location=self.device)
@@ -54,20 +61,17 @@ class GoalRecogniser(object):
 
             self.trained_models[i].load_state_dict(
                 checkpoint['model_state_dict'])
+
+            self.trained_model_paths[i] = self.trained_model_paths[i].removeprefix(
+                self.saved_model_dir)
+
+            # str.r
             print(
                 f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
 
     def set_external_agent(self, other_agent: agent.Agent):
 
         self.other_agent = other_agent
-        # print(list(other_agent.externally_visible_goal_sets.keys()) + [self.other_agent.goal])
-        # for goal in list(other_agent.externally_visible_goal_sets.keys()) + [self.other_agent.goal]:
-
-        #     if goal not in self.models:
-        #         model_file = self.saved_model_dir + goal + '.chk'
-        #         checkpoint = torch.load(model_file, map_location=self.device)
-        #         self.models[goal] = DQN(self.dqn_config)
-        #         self.models[goal].load_state_dict(checkpoint['model_state_dict'])
 
         self.probability_plot.reset()
         self.total_kl = np.zeros(
@@ -98,67 +102,16 @@ class GoalRecogniser(object):
         result = result / result.sum(axis=0, keepdims=1)
         return result
 
-    def perceive(self, state, action: int):
-        print("GR observer")
-        print(
-            f"No.\t{'Score':<10} {'Parameters': <40} {'Goal set': <50} Action Probabilities")
+    def perceive(self, state, action: int, frame_num):
+        # print("GR observer")
+        # print(f"No.\t{'Score':<10} {'Parameters': <35} {'Goal set': <40} Action Probabilities")
         for i in range(len(self.trained_models)):
             kl_div, act_probs = self.calculate_kl_divergence(i, state, action)
             self.tm_scores[i] += kl_div
+            self.tm_total_scores_each_step[frame_num %
+                                           self.max_steps][i] += self.tm_scores[i]
             act_probs = [round(x, 3) for x in act_probs.tolist()]
-            print(
-                f"{i}\t{round(self.tm_scores[i], 3):<10} {str(self.trained_model_param[i]): <40} {str(self.trained_model_goal_dics[i]): <50} {str(act_probs)}")
-        # if self.show_graph and self.moving_avg_updates == 0:
-        #     self.probability_plot.add_data_point("moving_kl_div", 0, np.zeros_like(self.total_kl_moving_avg) * (1.0 / len(self.other_agent.externally_visible_goal_sets)), False, True)
-
-        # self.moving_avg_updates += 1
-        # for i in range(len(self.other_agent.externally_visible_goal_sets)):
-        #     kl_div = self.calculate_kl_divergence(state, self.other_agent.externally_visible_goal_sets[i], action)
-        #     self.total_kl[i] += kl_div
-        #     self.total_kl_moving_avg[i] = self.hypothesis_momentum * self.total_kl_moving_avg[i] + (1.0 - self.hypothesis_momentum) * kl_div
-        #     self.total_kl_moving_avg_debiased[i] = self.total_kl_moving_avg[i] / (1.0 - self.hypothesis_momentum ** self.moving_avg_updates)
-
-        # if self.show_graph:
-        #     self.probability_plot.add_data_point("moving_kl_div", self.moving_avg_updates, self.total_kl_moving_avg_debiased, False, True)
-
-        #     labels = []
-        #     for id in self.other_agent.externally_visible_goal_sets:
-        #         labels.append(id)
-
-        #     self.probability_plot.update_image("moving_kl_div", labels)
-
-        # if self.log_dir is not None and self.step_number == 0:
-
-        #     if self.first_log_write:
-        #         file_mode = 'w'
-        #         self.first_log_write = False
-        #     else:
-        #         file_mode = 'a'
-
-        #     header = 'step'
-        #     for id in self.other_agent.externally_visible_goal_sets:
-        #         header = header + ", " + id
-
-        #     with open(self.log_dir + 'moving_kl_div.csv', file_mode) as fd:
-        #         fd.write(header + "\n")
-
-        #     with open(self.log_dir + 'state_log.txt', file_mode) as fd:
-        #         fd.write("STATE LOG:\n")
-
-        # self.step_number += 1
-
-        # if self.log_dir:
-        #     data_row = str(self.step_number)
-        #     for kl in self.total_kl_moving_avg_debiased:
-        #         data_row = data_row + ", " + str(kl)
-
-        #     with open(self.log_dir + 'moving_kl_div.csv', 'a') as fd:
-        #         fd.write(data_row + "\n")
-
-        #     with open(self.log_dir + 'state_log.txt', 'a') as fd:
-        #         fd.write("\n\nSTEP: " + str(self.step_number) + "\n")
-
-        #     state.render(log_dir=self.log_dir)
+         # print(f"{i}\t{round(self.tm_scores[i], 3):<10} {str(self.trained_model_param[i]): <35} {str(self.trained_model_goal_dics[i]): <40} {str(act_probs)}")
 
     def update_hypothesis(self):
 
@@ -180,44 +133,65 @@ class GoalRecogniser(object):
         trained_models_path = []
         trained_models_goal_dic = []
         trained_models_param = []
-        param_set = {"limit", "belief", "uvfa", "skill"}
+        param_set = {"limit", "belief", "uvfa", "ability"}
 
         # Iterate through the directory
         for root, dirs, files in os.walk(directory):
+            # Get the directory name before the subdirectory
+            # to split "\" because windows don't follow unix style
+            base_folder = list(chain.from_iterable(
+                [x.split("\\") for x in root.split('/')]))
 
             for folder_name in dirs:
                 # filter out other folders
-                pattern = r'([a-zA-Z]+_-*\d+\.?\d*)'
+                if "uvfa" in base_folder and "uvfa" in self.IO_param:
+                    pattern = r'([a-zA-Z]+_[a-zA-Z]+)'
+                else:
+                    # currently regex works if number is less than 1 with comma or more than 1 without comma
+                    pattern = r'([a-zA-Z]+_-*\d+\.?\d*)'
                 matches = [x.split('_')
                            for x in re.findall(pattern, folder_name)]
-                obj_list = [x[0] for x in matches]
-                weight_list = [x[1] for x in matches]
+                if "uvfa" in base_folder and "uvfa" in self.IO_param:
+                    obj_list = matches[0]
+                else:
+                    obj_list = [x[0] for x in matches]
+                    weight_list = [x[1] for x in matches]
+
+                if "level" in obj_list:
+                    obj_list.remove("level")
 
                 if set(obj_list) == set(required_objects):
                     tm_param = {}
-                    # Get the directory name before the subdirectory
-                    # to split "\" because windows don't follow unix style
-                    base_folder = list(chain.from_iterable(
-                        [x.split("\\") for x in root.split('/')]))
+                    tm_goal_dic = {}
+
                     for param in param_set.intersection(base_folder):
                         tm_param[param] = ''
 
-                    tm_goal_dic = {}
+                    if "uvfa" in tm_param:
+                        tm_param["uvfa"] = obj_list
+                    else:
 
-                    # get goal dic
-                    for obj in required_objects:
-                        tm_goal_dic[obj] = weight_list[obj_list.index(
-                            obj)]
+                        # get goal dic
+                        for obj in required_objects:
+                            tm_goal_dic[obj] = weight_list[obj_list.index(
+                                obj)]
 
-                    # get param
-                    if "belief" in tm_param:
-                        pattern = r'_hidden_([a-zA-Z]*)_([a-zA-Z]*)'
-                        result = re.findall(pattern, folder_name)[0]
-                        tm_param['belief'] = result
+                        # get param
+                        if "belief" in tm_param:
+                            pattern = r'_hidden_([a-zA-Z]*)_([a-zA-Z]*)'
+                            result = re.findall(pattern, folder_name)[0]
+                            tm_param['belief'] = result
+
+                        if "ability":
+                            pattern = r'_level_(\d+)_uniform'
+                            result = re.findall(pattern, folder_name)
+                            tm_param['ability'] = result
 
                     trained_models_path.append(root+'/'+folder_name)
-                    trained_models_goal_dic.append(tm_goal_dic)
                     trained_models_param.append(tm_param)
+                    trained_models_goal_dic.append(tm_goal_dic)
+
+            # sorted(d.items(), key=lambda item: item[1])
 
         return trained_models_path, trained_models_goal_dic, trained_models_param
 
@@ -234,3 +208,17 @@ class GoalRecogniser(object):
                 temp_min_id = i
 
         return temp_min_id
+
+    def get_result(self, max_frame, goal_str):
+        avg = []
+        total_ep = max_frame/self.max_steps
+        for step in self.tm_total_scores_each_step:
+            avg_m_score = [m_score/total_ep for m_score in step]
+            avg.append(avg_m_score)
+
+        df = pd.DataFrame(data=avg)
+        plt.plot(df.index, df)
+        plt.legend(self.trained_model_paths)
+
+        fig_path = self.log_dir + "/" + goal_str + ".jpg"
+        plt.savefig(fig_path)

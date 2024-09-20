@@ -175,7 +175,6 @@ else:
 if "uvfa" in IO_param:
     uvfa = True
     print("UVFA is ON")
-    IO_param_path += 'uvfa/'
 else:
     print("UVFA is OFF")
 
@@ -186,8 +185,8 @@ if "belief" in IO_param:
 
 if "ability" in IO_param:
     ability = True
-    print("Using skills")
-    IO_param_path += 'skill/'
+    print("Using ability")
+    IO_param_path += 'ability/'
     ab_rating['player'] = 100
     ab_rating['craft'] = 100
 # endregion
@@ -210,12 +209,12 @@ agent_params["adam_beta2"] = 0.999
 real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
-ag_models_root = '/gr_model/'
+ag_models_root = '/ag_model/'
 ag_models_folder = ag_models_root + IO_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
-if uvfa:
+if uvfa and not gr_obs:
     result_folder = ag_models_folder + \
         goal_dic_to_str(goal_dic, inc_weight=False)
 if belief:
@@ -312,12 +311,18 @@ frame_num = 0
 max_training_frames = 10000000  # 999999999
 if uvfa:
     max_training_frames = 999999999
+if gr_obs:
+    max_training_frames = 10000
 steps_since_eval_ran = 0
 steps_since_eval_began = 0
 eval_total_score = 0
 eval_total_episodes = 0
 best_eval_average = float("-inf")
 episode_done = False
+
+print("MAX steps", max_steps)
+print("MAX training frame", max_training_frames)
+print("Total Episode", max_training_frames/max_steps)
 # endregion
 
 # region AGENT INIT
@@ -341,7 +346,7 @@ if gr_obs:
     # creates a separate config for gr and agent
     gr_dqn_config = deepcopy(agent_params["dqn_config"])
     GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir,
-                        dqn_config=gr_dqn_config, log_dir=goal_log_path, IO_param=IO_param)
+                        dqn_config=gr_dqn_config, log_dir=goal_log_path, IO_param=IO_param, max_steps=max_steps)
 # endregion
 
 reset_all()
@@ -368,7 +373,7 @@ while frame_num < max_training_frames:
         hi_collect_count += 1
 
     if gr_obs:
-        GR.perceive(state, a)
+        GR.perceive(state, a, frame_num)
 
     reward = reward_list[0]  # reward is list with length based on num_agents
 
@@ -381,11 +386,11 @@ while frame_num < max_training_frames:
         frame_num += 1
 
     # print results
-
-    if env_render or gr_obs:
+    if env_render:  # or gr_obs:
         if gr_obs:
-            print("Inferred model:", GR.get_inference())
-            print()
+            1
+            # print("Inferred model:", GR.get_inference())
+            # print()
 
         print("Inventory")
         print(
@@ -407,7 +412,7 @@ while frame_num < max_training_frames:
     # handle episode done
     if episode_done:
         if gr_obs and not env_render:
-            input()
+            1  # input()
 
         if eval_running:  # This is only run during training
             print('Evaluation time step: ' + str(steps_since_eval_began) +
@@ -426,7 +431,7 @@ while frame_num < max_training_frames:
                 score_str = score_str + ', ' + \
                     agent.name + ": " + str(total_reward)
 
-            if not gr_obs and not env_render:  # if gr is off then print as normal
+            if not env_render:  # not gr_obs # if gr is off then print as normal
                 print('Time step: ' + str(frame_num) +
                       ', ep scores:' + score_str[1:])
 
@@ -469,5 +474,9 @@ while frame_num < max_training_frames:
 
                 eval_running = False
                 steps_since_eval_began = 0
+
+if gr_obs:
+    GR.get_result(max_training_frames, goal_dic_to_str(
+        goal_dic, inc_weight=True))
 
 # endregion

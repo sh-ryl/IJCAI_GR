@@ -197,6 +197,8 @@ class CooperativeCraftWorldState():
                                     for x in range(required_count):
                                         self.objects[ingredient].append(
                                             self.get_free_square())
+                            # Negative reward when agent failed to craft
+                            reward[self.player_turn] -= -1
                             continue
 
                         # update inventory when craft succeeds
@@ -453,8 +455,15 @@ class CooperativeCraftWorld(gym.Env):
                         reward_dic[item] = agent.goal_set[item]
                 else:
                     reward_dic[item] = 0
+                    for k, v in _recipes.items():
+                        if item in v[1] and k in agent.goal_set:
+                            reward_dic[item] = 0.2
+                            break
 
             _reward.append(reward_dic)
+
+        print(_reward)
+        input('here')
 
         random.seed(seed)
 

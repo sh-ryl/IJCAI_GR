@@ -36,7 +36,7 @@ class GoalRecogniser(object):
 
         self.goal_list = goal_list
 
-        self.IO_param = IO_param
+        # self.IO_param = IO_param
 
         self.trained_model_paths, self.trained_model_goal_dics, self.trained_model_param = self.find_folders(
             self.saved_model_dir, self.goal_list)
@@ -151,14 +151,14 @@ class GoalRecogniser(object):
 
             for folder_name in dirs:
                 # filter out other folders
-                if "uvfa" in base_folder and "uvfa" in self.IO_param:
+                if "uvfa" in base_folder:  # and "uvfa" in self.IO_param: # CHECK FOR UVFA LATER
                     pattern = r'([a-zA-Z]+_[a-zA-Z]+)'
                 else:
                     # currently regex works if number is less than 1 with comma or more than 1 without comma
                     pattern = r'([a-zA-Z]+_-*\d+\.?\d*)'
                 matches = [x.split('_')
                            for x in re.findall(pattern, folder_name)]
-                if "uvfa" in base_folder and "uvfa" in self.IO_param:
+                if "uvfa" in base_folder:  # and "uvfa" in self.IO_param:
                     obj_list = matches[0]
                 else:
                     obj_list = [x[0] for x in matches]
@@ -223,7 +223,7 @@ class GoalRecogniser(object):
 
         return temp_min_id
 
-    def get_result(self, max_frame, goal_str):
+    def get_result(self, max_frame, goal_str, ag_param=dict()):
         avg_total = []
         avg_step = []
 
@@ -236,11 +236,17 @@ class GoalRecogniser(object):
             avg_total.append(avg_total_score_each_step)
             avg_step.append(avg_score_each_step)
 
+        param_str = ''
+        for param in sorted(ag_param.keys()):
+            param_str += '_' + param
+            if str(ag_param[param]) != '':
+                param_str += '_' + str(ag_param[param])
+
         df = pd.DataFrame(data=avg_total)
         plt.plot(df.index, df)
         plt.legend(self.trained_model_paths)
 
-        fig_path = self.log_dir + "/" + goal_str + "_total_score.jpg"
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_total_score.jpg"
         plt.savefig(fig_path)
 
         plt.clf()
@@ -249,5 +255,5 @@ class GoalRecogniser(object):
         plt.plot(df.index, df)
         plt.legend(self.trained_model_paths)
 
-        fig_path = self.log_dir + "/" + goal_str + "_step_score.jpg"
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_step_score.jpg"
         plt.savefig(fig_path)

@@ -151,6 +151,7 @@ uvfa = False
 IO_param_path = ''
 IO_param = sys.argv[2::]
 ab_rating = {}
+ag_param = {}
 
 if "render" in IO_param:
     env_render = True
@@ -175,12 +176,14 @@ if "limit" in IO_param:
     limit = True
     print("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1")
     IO_param_path += 'limit/'
+    ag_param['limit'] = ''
 else:
     print("Max inventory is 999 for all ingredients")
 
 if "uvfa" in IO_param:
     uvfa = True
     print("UVFA is ON")
+    ag_param['uvfa'] = ''
 else:
     print("UVFA is OFF")
 
@@ -188,13 +191,16 @@ if "belief" in IO_param:
     belief = True
     print("Using hidden items")
     IO_param_path += 'belief/'
+    ag_param['belief'] = ''
 
 if "ability" in IO_param:
     ability = True
     print("Using ability")
     IO_param_path += 'ability/'
-    ab_rating['player'] = 100
+    ab_rating['player'] = int(input("Enter ability rating for player: "))
     ab_rating['craft'] = 100
+    print("Ability rating for craft action is set to 100")
+    ag_param['ability'] = ab_rating['player']
 # endregion
 
 # region ENV INIT
@@ -215,7 +221,7 @@ agent_params["adam_beta2"] = 0.999
 real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
-ag_models_root = '/ag_model/'
+ag_models_root = '/gr_model/'
 ag_models_folder = ag_models_root + IO_param_path
 
 # saving/loading agent model for specific reward weightings
@@ -254,7 +260,7 @@ agent_params["saved_model_dir"] = os.path.dirname(
 
 # Observer (GR) I/O Settings
 if gr_obs:
-    gr_models_root = '/gr_model/'
+    gr_models_root = '/ag_model/'
     gr_models_folder = gr_models_root
     model_dir = real_path + gr_models_folder
     print(f"GR model folder: {gr_models_folder}")
@@ -502,6 +508,6 @@ while frame_num < max_training_frames:
 
 if gr_obs:
     GR.get_result(max_training_frames, goal_dic_to_str(
-        goal_dic, inc_weight=True))
+        goal_dic, inc_weight=True), ag_param)
 
 # endregion

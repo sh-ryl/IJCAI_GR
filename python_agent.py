@@ -201,6 +201,9 @@ if "ability" in IO_param:
     ab_rating['craft'] = 100
     print("Ability rating for craft action is set to 100")
     ag_param['ability'] = ab_rating['player']
+
+if not agent_params["test_mode"]:  # just to label a certain training model
+    custom_param = input("Enter any custom param (leave empty when not used)")
 # endregion
 
 # region ENV INIT
@@ -221,8 +224,8 @@ agent_params["adam_beta2"] = 0.999
 real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
-ag_models_root = '/gr_model/'
-ag_models_folder = ag_models_root + IO_param_path
+ag_models_root = '/ag_model/'
+ag_models_folder = ag_models_root + IO_param_path + custom_param
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)

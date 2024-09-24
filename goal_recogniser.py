@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 class GoalRecogniser(object):
 
-    def __init__(self, goal_list=[], model_temperature=0.01, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, IO_param=[], max_steps=100):
+    def __init__(self, goal_list=[], model_temperature=0.1, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, IO_param=[], max_steps=100):
 
         self.saved_model_dir = saved_model_dir
         self.model_temperature = model_temperature
@@ -45,6 +45,7 @@ class GoalRecogniser(object):
         self.tm_scores = [0] * len(self.trained_model_paths)
         self.tm_total_scores_each_step = [[0 for y in range(
             len(self.trained_model_paths))]for x in range(max_steps)]  # 100 for max timestep
+        self.tm_scores_each_step = deepcopy(self.tm_total_scores_each_step)
         self.tm_state_size = [0] * len(self.trained_model_paths)
 
         for i in range(len(self.trained_model_paths)):
@@ -102,16 +103,22 @@ class GoalRecogniser(object):
         result = result / result.sum(axis=0, keepdims=1)
         return result
 
-    def perceive(self, state, action: int, frame_num):
-        # print("GR observer")
-        # print(f"No.\t{'Score':<10} {'Parameters': <35} {'Goal set': <40} Action Probabilities")
+    def perceive(self, state, action: int, frame_num, print_result):
+        if print_result:
+            print("GR observer")
+            print(
+                f"No.\t{'Score':<10} {'Parameters': <35} {'Goal set': <40} Action Probabilities")
         for i in range(len(self.trained_models)):
             kl_div, act_probs = self.calculate_kl_divergence(i, state, action)
             self.tm_scores[i] += kl_div
             self.tm_total_scores_each_step[frame_num %
                                            self.max_steps][i] += self.tm_scores[i]
+            self.tm_scores_each_step[frame_num %
+                                     self.max_steps][i] += kl_div
             act_probs = [round(x, 3) for x in act_probs.tolist()]
-         # print(f"{i}\t{round(self.tm_scores[i], 3):<10} {str(self.trained_model_param[i]): <35} {str(self.trained_model_goal_dics[i]): <40} {str(act_probs)}")
+            if print_result:
+                print(
+                    f"{i}\t{round(self.tm_scores[i], 3):<10} {str(self.trained_model_param[i]): <35} {str(self.trained_model_goal_dics[i]): <40} {str(act_probs)}")
 
     def update_hypothesis(self):
 
@@ -182,18 +189,25 @@ class GoalRecogniser(object):
                             result = re.findall(pattern, folder_name)[0]
                             tm_param['belief'] = result
 
-                        if "ability":
-                            pattern = r'_level_(\d+)_uniform'
-                            result = re.findall(pattern, folder_name)
-                            tm_param['ability'] = result
+                    if "ability" in tm_param:
+                        pattern = r'_level_(\d+)_uniform'
+                        result = re.findall(pattern, folder_name)
+                        tm_param['ability'] = result
 
                     trained_models_path.append(root+'/'+folder_name)
                     trained_models_param.append(tm_param)
                     trained_models_goal_dic.append(tm_goal_dic)
 
-            # sorted(d.items(), key=lambda item: item[1])
+        combined = zip(trained_models_goal_dic,
+                       trained_models_path, trained_models_param)
+        sorted_combined = sorted(
+            combined, key=lambda x: x[0][required_objects[0]])
 
-        return trained_models_path, trained_models_goal_dic, trained_models_param
+        # Step 2: Extract sorted `d` and `other_list`
+        trained_models_goal_dic, trained_models_path, trained_models_param = zip(
+            *sorted_combined)
+
+        return list(trained_models_path), list(trained_models_goal_dic), list(trained_models_param)
 
     def reset(self):
         self.tm_scores = [0] * len(self.trained_model_paths)
@@ -210,15 +224,30 @@ class GoalRecogniser(object):
         return temp_min_id
 
     def get_result(self, max_frame, goal_str):
-        avg = []
-        total_ep = max_frame/self.max_steps
-        for step in self.tm_total_scores_each_step:
-            avg_m_score = [m_score/total_ep for m_score in step]
-            avg.append(avg_m_score)
+        avg_total = []
+        avg_step = []
 
-        df = pd.DataFrame(data=avg)
+        total_ep = max_frame/self.max_steps
+        for step in range(len(self.tm_total_scores_each_step)):
+            avg_total_score_each_step = [
+                total_score/total_ep for total_score in self.tm_total_scores_each_step[step]]
+            avg_score_each_step = [
+                step_score/total_ep for step_score in self.tm_scores_each_step[step]]
+            avg_total.append(avg_total_score_each_step)
+            avg_step.append(avg_score_each_step)
+
+        df = pd.DataFrame(data=avg_total)
         plt.plot(df.index, df)
         plt.legend(self.trained_model_paths)
 
-        fig_path = self.log_dir + "/" + goal_str + ".jpg"
+        fig_path = self.log_dir + "/" + goal_str + "_total_score.jpg"
+        plt.savefig(fig_path)
+
+        plt.clf()
+
+        df = pd.DataFrame(data=avg_step)
+        plt.plot(df.index, df)
+        plt.legend(self.trained_model_paths)
+
+        fig_path = self.log_dir + "/" + goal_str + "_step_score.jpg"
         plt.savefig(fig_path)

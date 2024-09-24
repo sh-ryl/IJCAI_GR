@@ -459,4 +459,6 @@ class CooperativeCraftWorld(gym.Env):
         random.seed(seed)
 
         self.state.reset()
+        if self.render:
+            self.state.render(True)
         return self.state

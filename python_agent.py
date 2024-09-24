@@ -141,9 +141,10 @@ else:
     gpu = -1  # Use CPU when not training
 
 env_render = False
+gr_obs = False
+print_result = False
 belief = False
 limit = False
-gr_obs = False
 ability = False
 uvfa = False
 
@@ -164,6 +165,11 @@ if "GR" in IO_param:
     print("GR Observer is ON")
 else:
     print("GR Observer is OFF")
+
+if "result" in IO_param:
+    print_result = True
+    IO_param.remove('result')
+    print("Printing result from GR")
 
 if "limit" in IO_param:
     limit = True
@@ -356,14 +362,36 @@ if gr_obs:
 
 # region MAIN LOOP
 input("Start?")
+print("---------------------------------------------")
 
 hi_collect_count = 0
 while frame_num < max_training_frames:
     a = agent.perceive(reward, state, episode_done, eval_running)
 
+    if env_render:
+        a_str = ''
+        if a == 0:
+            a_str = "UP"
+        elif a == 1:
+            a_str = "DOWN"
+        elif a == 2:
+            a_str = "LEFT"
+        elif a == 3:
+            a_str = "RIGHT"
+        elif a == 4:
+            a_str = "COLLECT"
+        elif a == 5:
+            a_str = "CRAFT"
+        elif a == 6:
+            a_str = "NO_OP"
+        print(f"Action taken: {a} {a_str}")
+
     # get count of picking up grass
     grass_ep_count = state.inventory[0]["grass"]
     wood_ep_count = state.inventory[0]["wood"]
+
+    if gr_obs:
+        GR.perceive(state, a, frame_num, print_result=print_result)
 
     state, reward_list, episode_done, info = env.step_full_state(a)
 
@@ -371,9 +399,6 @@ while frame_num < max_training_frames:
         hi_collect_count += 1
     if state.inventory[0]["wood"] > grass_ep_count:
         hi_collect_count += 1
-
-    if gr_obs:
-        GR.perceive(state, a, frame_num)
 
     reward = reward_list[0]  # reward is list with length based on num_agents
 

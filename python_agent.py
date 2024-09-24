@@ -202,6 +202,7 @@ if "ability" in IO_param:
     print("Ability rating for craft action is set to 100")
     ag_param['ability'] = ab_rating['player']
 
+custom_param = ''
 if not agent_params["test_mode"]:  # just to label a certain training model
     custom_param = input("Enter any custom param (leave empty when not used)")
 # endregion
@@ -225,7 +226,7 @@ real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
 ag_models_root = '/ag_model/'
-ag_models_folder = ag_models_root + IO_param_path + custom_param
+ag_models_folder = ag_models_root + IO_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
@@ -240,10 +241,13 @@ if ability:
     result_folder += f"_level_{ab_rating['player']}_uniform"
     # uniform rating for all crafting skills
     # will look for ways to store skills with different difficulty ratings
+if custom_param != '':
+    result_folder += "_" + custom_param
 agent_params["log_dir"] = real_path + f'{result_folder}/'
 
 if not os.path.exists(agent_params["log_dir"]) and not gr_obs:
     os.makedirs(agent_params["log_dir"])
+    print(f"Created new folder: {agent_params['log_dir']}")
 print(f"Agent model loaded: {result_folder}")
 
 training_scores_file = "training_scores.csv"

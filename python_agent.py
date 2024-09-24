@@ -204,7 +204,7 @@ if "ability" in IO_param:
 
 custom_param = ''
 if not agent_params["test_mode"]:  # just to label a certain training model
-    custom_param = input("Enter any custom param (leave empty when not used)")
+    custom_param = input("Enter any custom param (leave empty when not used): ")
 # endregion
 
 # region ENV INIT

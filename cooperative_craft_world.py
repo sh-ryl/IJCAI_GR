@@ -199,8 +199,8 @@ class CooperativeCraftWorldState():
                                             self.get_free_square())
                             # COMMENT OUT BELOW TO REMOVE:
                             # Negative reward when agent failed to craft
-                            reward[self.player_turn] -= -1
-                            continue
+                            reward[self.player_turn] -= 1
+                            break
 
                         # update inventory when craft succeeds
                         self.inventory[self.player_turn][k] += 1
@@ -458,10 +458,10 @@ class CooperativeCraftWorld(gym.Env):
                     reward_dic[item] = 0
                     # COMMENT OUT BELOW TO REMOVE:
                     # Incentivize collecting req items to craft goal set
-                    for k, v in _recipes.items():
-                        if item in v[1] and k in agent.goal_set:
-                            reward_dic[item] = 0.2
-                            break
+                    # for k, v in _recipes.items():
+                    #     if item in v[1] and k in agent.goal_set:
+                    #         reward_dic[item] = 0.2
+                    #         break
 
             _reward.append(reward_dic)
 

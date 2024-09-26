@@ -202,9 +202,11 @@ if "ability" in IO_param:
     print("Ability rating for craft action is set to 100")
     ag_param['ability'] = ab_rating['player']
 
-custom_param = ''
-if not agent_params["test_mode"]:  # just to label a certain training model
-    custom_param = input("Enter any custom param (leave empty when not used): ")
+# just to label a certain training model
+custom_param = input(
+    "Enter any custom param for agent model (leave empty when not used): ")
+if custom_param != "":
+    IO_param.append(custom_param)
 # endregion
 
 # region ENV INIT
@@ -267,7 +269,7 @@ agent_params["saved_model_dir"] = os.path.dirname(
 
 # Observer (GR) I/O Settings
 if gr_obs:
-    gr_models_root = '/ag_model/'
+    gr_models_root = '/gr_model/'
     gr_models_folder = gr_models_root
     model_dir = real_path + gr_models_folder
     print(f"GR model folder: {gr_models_folder}")

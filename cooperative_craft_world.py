@@ -46,6 +46,16 @@ _recipes = {
     "stick": ("workbench", {"wood": 1})
 }
 
+_raw_recipes = {
+    "axe": {"iron": 1, "wood": 1},
+    "bed": {"grass": 1, "wood": 1},
+    "bridge": {"iron": 1, "wood": 1},
+    "cloth": {"grass": 1},
+    "plank": {"wood": 1},
+    "rope": {"grass": 1},
+    "stick": {"wood": 1}
+}
+
 UP = 0
 DOWN = 1
 LEFT = 2
@@ -117,6 +127,8 @@ class CooperativeCraftWorldState():
             }
 
         self.ab_rating = ab_rating
+
+        self.IO_param = IO_param
 
     def step(self, action, assumed_reward_func=_reward):
 
@@ -191,15 +203,23 @@ class CooperativeCraftWorldState():
                         # failed crafting, scatter collected items on the ground
                         if r_craft > craft_prob:
                             for ingredient, required_count in v[1].items():
-                                if ingredient in self._max_inventory:
+                                if ingredient in self._max_inventory:  # raw items
                                     # to check if it's ingredients collected from the ground (i.e. wood, iron)
                                     # this will keep crafted ingredients (i.e. plank, stick) in inventory
                                     for x in range(required_count):
                                         self.objects[ingredient].append(
                                             self.get_free_square())
-                            # COMMENT OUT BELOW TO REMOVE:
-                            # Negative reward when agent failed to craft
-                            reward[self.player_turn] -= 1
+                                elif ingredient in _raw_recipes:  # non raw items
+                                    # hard coded raw recipes to convert ingreds back to raw
+                                    ingred_recipe = _raw_recipes[ingredient]
+                                    for raw_item in ingred_recipe:
+                                        required_count = ingred_recipe[raw_item]
+                                        for x in range(required_count):
+                                            self.objects[raw_item].append(
+                                                self.get_free_square())
+                            if "fail_neg" in self.IO_param:
+                                # Negative reward when agent failed to craft
+                                reward[self.player_turn] -= 1
                             break
 
                         # update inventory when craft succeeds
@@ -456,12 +476,12 @@ class CooperativeCraftWorld(gym.Env):
                         reward_dic[item] = agent.goal_set[item]
                 else:
                     reward_dic[item] = 0
-                    # COMMENT OUT BELOW TO REMOVE:
-                    # Incentivize collecting req items to craft goal set
-                    # for k, v in _recipes.items():
-                    #     if item in v[1] and k in agent.goal_set:
-                    #         reward_dic[item] = 0.2
-                    #         break
+                    if "incentive" in self.IO_param:
+                        # Incentivize collecting req items to craft goal set
+                        for k, v in _recipes.items():
+                            if item in v[1] and k in agent.goal_set:
+                                reward_dic[item] = 0.2
+                                break
 
             _reward.append(reward_dic)
 

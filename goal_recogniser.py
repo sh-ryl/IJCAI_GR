@@ -21,32 +21,27 @@ class GoalRecogniser(object):
 
     def __init__(self, goal_list=[], model_temperature=0.1, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, IO_param=[], max_steps=100):
 
+        # IO Settings
         self.saved_model_dir = saved_model_dir
+        self.show_graph = show_graph
+        self.first_log_write = True
+        self.log_dir = log_dir
+        self.probability_plot = Dialog()
+
+        # GR Model Settings
         self.model_temperature = model_temperature
         self.hypothesis_momentum = hypothesis_momentum
         self.kl_tolerance = kl_tolerance
-        self.show_graph = show_graph
-        self.log_dir = log_dir
-        self.first_log_write = True
+        self.device = torch.device("cuda" if dqn_config.gpu >= 0 else "cpu")
+
         self.step_number = 0
         self.max_steps = max_steps
-
-        self.device = torch.device("cuda" if dqn_config.gpu >= 0 else "cpu")
-        self.probability_plot = Dialog()
-
         self.goal_list = goal_list
 
-        # self.IO_param = IO_param
-
+        # Load GR observer models
         self.trained_model_paths, self.trained_model_goal_dics, self.trained_model_param = self.find_folders(
             self.saved_model_dir, self.goal_list)
-
         self.trained_models = []
-        self.tm_scores = [0] * len(self.trained_model_paths)
-        self.tm_total_scores_each_step = [[0 for y in range(
-            len(self.trained_model_paths))]for x in range(max_steps)]  # 100 for max timestep
-        self.tm_scores_each_step = deepcopy(self.tm_total_scores_each_step)
-        self.tm_state_size = [0] * len(self.trained_model_paths)
 
         for i in range(len(self.trained_model_paths)):
             model_file = f'{self.trained_model_paths[i]}/model.chk'
@@ -54,21 +49,48 @@ class GoalRecogniser(object):
 
             tm_state_size = checkpoint['model_state_dict']['fc1.weight'].size()[
                 1]
-            # deepcopy(dqn_config) # perhaps not using deepcopy would save mems, idk :p
             tm_dqn_config = dqn_config
             tm_dqn_config.set_state_size(tm_state_size)
 
             self.trained_models.append(DQN(tm_dqn_config))
-
             self.trained_models[i].load_state_dict(
                 checkpoint['model_state_dict'])
-
             self.trained_model_paths[i] = self.trained_model_paths[i].removeprefix(
                 self.saved_model_dir)
 
-            # str.r
             print(
                 f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
+
+        # Choose Models to include as observer
+        print()
+        print("Do you want to include all models listed above?")
+        start = input(
+            "Press [Enter] to include all\nPress [other keys] to edit")
+        if start != "":
+            choice = input(
+                "Which models to remove? (Model number separated by comma) ")
+            choice = sorted([int(x) for x in choice.split(",")])
+            remove_count = 0
+            for i in choice:
+                print(
+                    f"REMOVING GR model: {self.trained_model_paths[i-remove_count]}")
+                self.trained_model_paths.pop(i-remove_count)
+                self.trained_model_goal_dics.pop(i-remove_count)
+                self.trained_model_param.pop(i-remove_count)
+                self.trained_models.pop(i-remove_count)
+                remove_count += 1
+
+            print()
+            print("Updated Model List")
+            for i in range(len(self.trained_model_paths)):
+                print(
+                    f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
+
+        # Init scores for evaluation
+        self.tm_scores = [0] * len(self.trained_model_paths)
+        self.tm_total_scores_each_step = [[0 for y in range(
+            len(self.trained_model_paths))]for x in range(max_steps)]  # 100 for max timestep
+        self.tm_scores_each_step = deepcopy(self.tm_total_scores_each_step)
 
     def set_external_agent(self, other_agent: agent.Agent):
 
@@ -108,15 +130,18 @@ class GoalRecogniser(object):
             print("GR observer")
             print(
                 f"No.\t{'Score':<10} {'Parameters': <35} {'Goal set': <40} Action Probabilities")
+
         for i in range(len(self.trained_models)):
             kl_div, act_probs = self.calculate_kl_divergence(i, state, action)
+
             self.tm_scores[i] += kl_div
             self.tm_total_scores_each_step[frame_num %
                                            self.max_steps][i] += self.tm_scores[i]
             self.tm_scores_each_step[frame_num %
                                      self.max_steps][i] += kl_div
-            act_probs = [round(x, 3) for x in act_probs.tolist()]
+
             if print_result:
+                act_probs = [round(x, 3) for x in act_probs.tolist()]
                 print(
                     f"{i}\t{round(self.tm_scores[i], 3):<10} {str(self.trained_model_param[i]): <35} {str(self.trained_model_goal_dics[i]): <40} {str(act_probs)}")
 
@@ -162,7 +187,7 @@ class GoalRecogniser(object):
                     obj_list = matches[0]
                 else:
                     obj_list = [x[0] for x in matches]
-                    weight_list = [x[1] for x in matches]
+                    weight_list = [float(x[1]) for x in matches]
 
                 if "level" in obj_list:
                     obj_list.remove("level")
@@ -176,6 +201,10 @@ class GoalRecogniser(object):
 
                     if "uvfa" in tm_param:
                         tm_param["uvfa"] = obj_list
+
+                        # get goal dic
+                        for obj in required_objects:
+                            tm_goal_dic[obj] = 0
                     else:
 
                         # get goal dic
@@ -183,11 +212,11 @@ class GoalRecogniser(object):
                             tm_goal_dic[obj] = weight_list[obj_list.index(
                                 obj)]
 
-                        # get param
-                        if "belief" in tm_param:
-                            pattern = r'_hidden_([a-zA-Z]*)_([a-zA-Z]*)'
-                            result = re.findall(pattern, folder_name)[0]
-                            tm_param['belief'] = result
+                    # get param
+                    if "belief" in tm_param:
+                        pattern = r'_hidden_([a-zA-Z]*)_([a-zA-Z]*)'
+                        result = re.findall(pattern, folder_name)[0]
+                        tm_param['belief'] = result
 
                     if "ability" in tm_param:
                         pattern = r'_level_(\d+)_uniform'
@@ -203,7 +232,7 @@ class GoalRecogniser(object):
         sorted_combined = sorted(
             combined, key=lambda x: x[0][required_objects[0]])
 
-        # Step 2: Extract sorted `d` and `other_list`
+        # Extract sorted combined tuples
         trained_models_goal_dic, trained_models_path, trained_models_param = zip(
             *sorted_combined)
 

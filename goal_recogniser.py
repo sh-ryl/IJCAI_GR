@@ -65,7 +65,7 @@ class GoalRecogniser(object):
         print()
         print("Do you want to include all models listed above?")
         start = input(
-            "Press [Enter] to include all\nPress [other keys] to edit")
+            "Press [Enter] to include all\nPress [Other Keys then Enter] to edit ")
         if start != "":
             choice = input(
                 "Which models to remove? (Model number separated by comma) ")
@@ -87,10 +87,14 @@ class GoalRecogniser(object):
                     f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
 
         # Init scores for evaluation
-        self.tm_scores = [0] * len(self.trained_model_paths)
+        self.tm_scores_kl = [0] * len(self.trained_model_paths)
         self.tm_total_scores_each_step = [[0 for y in range(
             len(self.trained_model_paths))]for x in range(max_steps)]  # 100 for max timestep
         self.tm_scores_each_step = deepcopy(self.tm_total_scores_each_step)
+        self.tm_bayes_probs = [
+            1.0 / int(len(self.tm_scores_kl))] * int(len(self.tm_scores_kl))
+        self.tm_bayes_probs_each_step = deepcopy(
+            self.tm_total_scores_each_step)
 
     def set_external_agent(self, other_agent: agent.Agent):
 
@@ -107,14 +111,14 @@ class GoalRecogniser(object):
         self.current_hypothesis = None
         self.step_number = 0
 
-    def calculate_kl_divergence(self, model_no, state, observed_action: int, max_value=100.0):
+    def calculate_action_probs(self, model_no, state, observed_action: int, max_value=100.0):
         state = torch.from_numpy(state.getRepresentation(gr_obs=True,
                                                          gr_param=self.trained_model_param[model_no])).float().to(
             self.device).unsqueeze(0)
         q = self.trained_models[model_no].forward(
             state).cpu().detach().squeeze()
         probs = F.softmax(q.div(self.model_temperature), dim=0)
-        return min(probs[observed_action].pow(-1).log().item(), max_value), probs
+        return probs
 
     def softmax(self, x, temperature):
 
@@ -126,24 +130,47 @@ class GoalRecogniser(object):
         return result
 
     def perceive(self, state, action: int, frame_num, print_result):
-        if print_result:
-            print("GR observer")
-            print(
-                f"No.\t{'Score':<10} {'Parameters': <35} {'Goal set': <40} Action Probabilities")
-
+        bayes_pr_act = 0
+        tm_act_probs = []
         for i in range(len(self.trained_models)):
-            kl_div, act_probs = self.calculate_kl_divergence(i, state, action)
+            act_probs = self.calculate_action_probs(i, state, action)
+            tm_act_probs.append(act_probs)
 
-            self.tm_scores[i] += kl_div
+            # kl div
+            kl_div_max = 100.0
+            kl_div = min(act_probs[action].pow(-1).log().item(), kl_div_max)
+
+            self.tm_scores_kl[i] += kl_div
             self.tm_total_scores_each_step[frame_num %
-                                           self.max_steps][i] += self.tm_scores[i]
+                                           self.max_steps][i] += self.tm_scores_kl[i]
             self.tm_scores_each_step[frame_num %
                                      self.max_steps][i] += kl_div
 
+            # bayes prob
+            bayes_pr_act += self.tm_bayes_probs[i] * act_probs[action]
+
+        bayes_probs_new = [0] * len(self.trained_models)
+        eps = 1e-20
+        if print_result:
+            print()
+            print("---------------- GR Inference ---------------")
+            print(
+                f"{'No.':3} {'Trained Model Paths':60} {'DKL Scores':10} {'Bayes Probs':10} Action Probabilities")
+            print()
+
+        for i in range(len(self.trained_models)):
+            # bayesian inf
+            bayes_probs_new[i] = tm_act_probs[i][action] * \
+                self.tm_bayes_probs[i] / bayes_pr_act+eps
+
+            self.tm_bayes_probs_each_step[frame_num %
+                                          self.max_steps][i] += bayes_probs_new[i]
+
             if print_result:
-                act_probs = [round(x, 3) for x in act_probs.tolist()]
+                tm_act_probs[i] = [round(float(x), 3) for x in tm_act_probs[i]]
                 print(
-                    f"{i}\t{round(self.tm_scores[i], 3):<10} {str(self.trained_model_param[i]): <35} {str(self.trained_model_goal_dics[i]): <40} {str(act_probs)}")
+                    f"{str(i)+'.':3} {self.trained_model_paths[i]:60} {round(self.tm_scores_kl[i], 3):<10} {round(float(bayes_probs_new[i]), 3):<10} {tm_act_probs[i]}")
+        self.tm_bayes_probs = bayes_probs_new
 
     def update_hypothesis(self):
 
@@ -239,15 +266,17 @@ class GoalRecogniser(object):
         return list(trained_models_path), list(trained_models_goal_dic), list(trained_models_param)
 
     def reset(self):
-        self.tm_scores = [0] * len(self.trained_model_paths)
+        self.tm_scores_kl = [0] * len(self.trained_model_paths)
+        self.tm_bayes_probs = [
+            1.0 / int(len(self.tm_scores_kl))] * int(len(self.tm_scores_kl))
 
     def get_inference(self):
-        temp_min = max(self.tm_scores)
+        temp_min = max(self.tm_scores_kl)
         temp_min_id = 0
 
-        for i in range(len(self.tm_scores)):
-            if self.tm_scores[i] < temp_min:
-                temp_min = self.tm_scores[i]
+        for i in range(len(self.tm_scores_kl)):
+            if self.tm_scores_kl[i] < temp_min:
+                temp_min = self.tm_scores_kl[i]
                 temp_min_id = i
 
         return temp_min_id
@@ -255,6 +284,7 @@ class GoalRecogniser(object):
     def get_result(self, max_frame, goal_str, ag_param=dict()):
         avg_total = []
         avg_step = []
+        avg_bp = []
 
         total_ep = max_frame/self.max_steps
         for step in range(len(self.tm_total_scores_each_step)):
@@ -262,8 +292,11 @@ class GoalRecogniser(object):
                 total_score/total_ep for total_score in self.tm_total_scores_each_step[step]]
             avg_score_each_step = [
                 step_score/total_ep for step_score in self.tm_scores_each_step[step]]
+            avg_bp_each_step = [
+                bayes_prob/total_ep for bayes_prob in self.tm_bayes_probs_each_step[step]]
             avg_total.append(avg_total_score_each_step)
             avg_step.append(avg_score_each_step)
+            avg_bp.append(avg_bp_each_step)
 
         param_str = ''
         for param in sorted(ag_param.keys()):
@@ -271,6 +304,7 @@ class GoalRecogniser(object):
             if str(ag_param[param]) != '':
                 param_str += '_' + str(ag_param[param])
 
+        # KL DIV TOTAL SCORE
         df = pd.DataFrame(data=avg_total)
         plt.plot(df.index, df)
         plt.legend(self.trained_model_paths)
@@ -280,9 +314,20 @@ class GoalRecogniser(object):
 
         plt.clf()
 
+        # KL DIV STEP SCORE
         df = pd.DataFrame(data=avg_step)
         plt.plot(df.index, df)
         plt.legend(self.trained_model_paths)
 
         fig_path = self.log_dir + "/" + goal_str + param_str + "_step_score.jpg"
+        plt.savefig(fig_path)
+
+        plt.clf()
+
+        # BAYES PROB
+        df = pd.DataFrame(data=avg_bp)
+        plt.plot(df.index, df)
+        plt.legend(self.trained_model_paths)
+
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_bayes_prob.jpg"
         plt.savefig(fig_path)

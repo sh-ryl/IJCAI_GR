@@ -291,7 +291,7 @@ agent_params["softmax_temperature"] = 0.05
 agent_params["ep_start"] = 1
 agent_params["ep_end"] = 0.01
 agent_params["ep_endt"] = 1000000
-agent_params["discount"] = 0.99
+agent_params["discount"] = 0.95
 
 # To help with learning from very sparse rewards initially
 agent_params["mixed_monte_carlo_proportion_start"] = 0.2
@@ -379,7 +379,6 @@ if gr_obs:
 input("Start?")
 print("---------------------------------------------")
 
-hi_collect_count = 0
 while frame_num < max_training_frames:
     a = agent.perceive(reward, state, episode_done, eval_running)
 
@@ -409,11 +408,6 @@ while frame_num < max_training_frames:
         GR.perceive(state, a, frame_num, print_result=print_result)
 
     state, reward_list, episode_done, info = env.step_full_state(a)
-
-    if state.inventory[0]["grass"] > grass_ep_count:
-        hi_collect_count += 1
-    if state.inventory[0]["wood"] > grass_ep_count:
-        hi_collect_count += 1
 
     reward = reward_list[0]  # reward is list with length based on num_agents
 

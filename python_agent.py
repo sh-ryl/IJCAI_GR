@@ -151,7 +151,6 @@ uvfa = False
 IO_param_path = ''
 IO_param = sys.argv[2::]
 ab_rating = {}
-ag_param = {}
 
 if "render" in IO_param:
     env_render = True
@@ -162,28 +161,32 @@ else:
 
 if "GR" in IO_param:
     gr_obs = True
+    gr_obs_output_param = {}
     IO_param.remove('GR')
     print("GR Observer is ON")
 else:
     print("GR Observer is OFF")
 
 if "result" in IO_param:
-    print_result = True
     IO_param.remove('result')
-    print("Printing result from GR")
+    if gr_obs:
+        print_result = True
+        print("Printing result from GR")
 
 if "limit" in IO_param:
     limit = True
     print("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1")
     IO_param_path += 'limit/'
-    ag_param['limit'] = ''
+    if gr_obs:
+        gr_obs_output_param['limit'] = ''
 else:
     print("Max inventory is 999 for all ingredients")
 
 if "uvfa" in IO_param:
     uvfa = True
     print("UVFA is ON")
-    ag_param['uvfa'] = ''
+    if gr_obs:
+        gr_obs_output_param['uvfa'] = ''
 else:
     print("UVFA is OFF")
 
@@ -191,7 +194,8 @@ if "belief" in IO_param:
     belief = True
     print("Using hidden items")
     IO_param_path += 'belief/'
-    ag_param['belief'] = ''
+    if gr_obs:
+        gr_obs_output_param['belief'] = ''
 
 if "ability" in IO_param:
     ability = True
@@ -200,13 +204,16 @@ if "ability" in IO_param:
     ab_rating['player'] = int(input("Enter ability rating for player: "))
     ab_rating['craft'] = 100
     print("Ability rating for craft action is set to 100")
-    ag_param['ability'] = ab_rating['player']
+    if gr_obs:
+        gr_obs_output_param['ability'] = ab_rating['player']
 
 # just to label a certain training model
 custom_param = input(
     "Enter any custom param for agent model (leave empty when not used): ")
 if custom_param != "":
     IO_param.append(custom_param)
+    if gr_obs:
+        gr_obs_output_param[custom_param] = ''
 # endregion
 
 # region ENV INIT
@@ -511,6 +518,6 @@ while frame_num < max_training_frames:
 
 if gr_obs:
     GR.get_result(max_training_frames, goal_dic_to_str(
-        goal_dic, inc_weight=True), ag_param)
+        goal_dic, inc_weight=True), gr_obs_output_param)
 
 # endregion

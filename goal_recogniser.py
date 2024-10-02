@@ -39,12 +39,12 @@ class GoalRecogniser(object):
         self.goal_list = goal_list
 
         # Load GR observer models
-        self.trained_model_paths, self.trained_model_goal_dics, self.trained_model_param = self.find_folders(
-            self.saved_model_dir, self.goal_list)
         self.trained_models = []
+        self.tm_paths, self.tm_param = self.find_folders(
+            self.saved_model_dir, self.goal_list)
 
-        for i in range(len(self.trained_model_paths)):
-            model_file = f'{self.trained_model_paths[i]}/model.chk'
+        for i in range(len(self.tm_paths)):
+            model_file = f'{self.tm_paths[i]}/model.chk'
             checkpoint = torch.load(model_file, map_location=self.device)
 
             tm_state_size = checkpoint['model_state_dict']['fc1.weight'].size()[
@@ -55,11 +55,11 @@ class GoalRecogniser(object):
             self.trained_models.append(DQN(tm_dqn_config))
             self.trained_models[i].load_state_dict(
                 checkpoint['model_state_dict'])
-            self.trained_model_paths[i] = self.trained_model_paths[i].removeprefix(
+            self.tm_paths[i] = self.tm_paths[i].removeprefix(
                 self.saved_model_dir)
 
             print(
-                f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
+                f"GR model {i}: {self.tm_paths[i]}, Param: {self.tm_param[i]}")
 
         # Choose Models to include as observer
         print()
@@ -73,28 +73,32 @@ class GoalRecogniser(object):
             remove_count = 0
             for i in choice:
                 print(
-                    f"REMOVING GR model: {self.trained_model_paths[i-remove_count]}")
-                self.trained_model_paths.pop(i-remove_count)
-                self.trained_model_goal_dics.pop(i-remove_count)
-                self.trained_model_param.pop(i-remove_count)
+                    f"REMOVING GR model: {self.tm_paths[i-remove_count]}")
+                self.tm_paths.pop(i-remove_count)
+                self.tm_param.pop(i-remove_count)
                 self.trained_models.pop(i-remove_count)
                 remove_count += 1
 
             print()
             print("Updated Model List")
-            for i in range(len(self.trained_model_paths)):
+            for i in range(len(self.tm_paths)):
                 print(
-                    f"GR model {i}: {self.trained_model_paths[i]}, Param: {self.trained_model_param[i]}")
+                    f"GR model {i}: {self.tm_paths[i]}, Param: {self.tm_param[i]}")
 
         # Init scores for evaluation
-        self.tm_scores_kl = [0] * len(self.trained_model_paths)
-        self.tm_total_scores_each_step = [[0 for y in range(
-            len(self.trained_model_paths))]for x in range(max_steps)]  # 100 for max timestep
-        self.tm_scores_each_step = deepcopy(self.tm_total_scores_each_step)
-        self.tm_bayes_probs = [
-            1.0 / int(len(self.tm_scores_kl))] * int(len(self.tm_scores_kl))
-        self.tm_bayes_probs_each_step = deepcopy(
-            self.tm_total_scores_each_step)
+        self.tm_dkl_sum = [0] * len(self.tm_paths)
+        self.tm_dkl_sum_eptotal = [[0 for y in range(
+            len(self.tm_paths))]for x in range(max_steps)]  # 100 for max timestep
+        self.tm_dkl_step_eptotal = deepcopy(self.tm_dkl_sum_eptotal)
+
+        self.tm_dkl_ravg_prev = [0] * len(self.tm_paths)
+        self.tm_dkl_ravg_eptotal = deepcopy(self.tm_dkl_sum_eptotal)
+        self.tm_dkl_zbc_eptotal = deepcopy(self.tm_dkl_sum_eptotal)
+
+        self.tm_bi_prob = [
+            1.0 / int(len(self.tm_dkl_sum))] * int(len(self.tm_dkl_sum))
+        self.tm_bi_prob_eptotal = deepcopy(
+            self.tm_dkl_sum_eptotal)
 
     def set_external_agent(self, other_agent: agent.Agent):
 
@@ -113,7 +117,7 @@ class GoalRecogniser(object):
 
     def calculate_action_probs(self, model_no, state, observed_action: int, max_value=100.0):
         state = torch.from_numpy(state.getRepresentation(gr_obs=True,
-                                                         gr_param=self.trained_model_param[model_no])).float().to(
+                                                         gr_param=self.tm_param[model_no])).float().to(
             self.device).unsqueeze(0)
         q = self.trained_models[model_no].forward(
             state).cpu().detach().squeeze()
@@ -129,48 +133,76 @@ class GoalRecogniser(object):
         result = result / result.sum(axis=0, keepdims=1)
         return result
 
-    def perceive(self, state, action: int, frame_num, print_result):
+    def perceive(self, state, action: int, frame_num, print_result, momentum=0.95):
         bayes_pr_act = 0
         tm_act_probs = []
+        tm_dkl_step = []
         for i in range(len(self.trained_models)):
             act_probs = self.calculate_action_probs(i, state, action)
             tm_act_probs.append(act_probs)
 
-            # kl div
-            kl_div_max = 100.0
-            kl_div = min(act_probs[action].pow(-1).log().item(), kl_div_max)
-
-            self.tm_scores_kl[i] += kl_div
-            self.tm_total_scores_each_step[frame_num %
-                                           self.max_steps][i] += self.tm_scores_kl[i]
-            self.tm_scores_each_step[frame_num %
-                                     self.max_steps][i] += kl_div
+            # kl div sum
+            dkl_max = 100.0
+            dkl_step = min(act_probs[action].pow(-1).log().item(), dkl_max)
+            tm_dkl_step.append(dkl_step)
 
             # bayes prob
-            bayes_pr_act += self.tm_bayes_probs[i] * act_probs[action]
+            bayes_pr_act += self.tm_bi_prob[i] * act_probs[action]
 
-        bayes_probs_new = [0] * len(self.trained_models)
+        tm_bi_prob_new = [0] * len(self.trained_models)
         eps = 1e-20
         if print_result:
             print()
             print("---------------- GR Inference ---------------")
             print(
-                f"{'No.':3} {'Trained Model Paths':60} {'DKL Scores':10} {'Bayes Probs':10} Action Probabilities")
+                f"{'No.':3} {'Trained Model Paths':60} {'Sum DKL':10} {'Run DKL':10} {'ZBC DKL':10} {'BI Prob':10} Action Probabilities")
             print()
 
         for i in range(len(self.trained_models)):
-            # bayesian inf
-            bayes_probs_new[i] = tm_act_probs[i][action] * \
-                self.tm_bayes_probs[i] / bayes_pr_act+eps
+            # kl div running avg
+            dkl_ravg = momentum * \
+                self.tm_dkl_ravg_prev[i] + (1 - momentum) * tm_dkl_step[i]
 
-            self.tm_bayes_probs_each_step[frame_num %
-                                          self.max_steps][i] += bayes_probs_new[i]
+            # kl div zero bias corrected
+            denom = 1 - pow(momentum, ((frame_num % self.max_steps) + 1))
+            dkl_zbc = dkl_ravg/denom
+
+            # bayesian inf
+            tm_bi_prob_new[i] = tm_act_probs[i][action] * \
+                self.tm_bi_prob[i] / bayes_pr_act+eps
 
             if print_result:
                 tm_act_probs[i] = [round(float(x), 3) for x in tm_act_probs[i]]
+                a = str(i)+'.'
+                b = self.tm_paths[i]
+                c = round(self.tm_dkl_sum[i], 3)
+                d = round(dkl_ravg, 3)
+                e = round(dkl_zbc, 3)
+                f = round(float(tm_bi_prob_new[i]), 3)
+                g = tm_act_probs[i]
                 print(
-                    f"{str(i)+'.':3} {self.trained_model_paths[i]:60} {round(self.tm_scores_kl[i], 3):<10} {round(float(bayes_probs_new[i]), 3):<10} {tm_act_probs[i]}")
-        self.tm_bayes_probs = bayes_probs_new
+                    f"{a:3} {b:60} {c:<10} {d:<10} {e:<10} {f:<10} {g}")
+
+            # update scores
+            # dkl sum
+            self.tm_dkl_sum[i] += tm_dkl_step[i]
+            self.tm_dkl_sum_eptotal[frame_num %
+                                    self.max_steps][i] += self.tm_dkl_sum[i]
+            self.tm_dkl_step_eptotal[frame_num %
+                                     self.max_steps][i] += tm_dkl_step[i]
+
+            # dkl ravg
+            self.tm_dkl_ravg_prev[i] = dkl_ravg
+            self.tm_dkl_ravg_eptotal[frame_num %
+                                     self.max_steps][i] += dkl_ravg
+
+            # dkl zbc
+            self.tm_dkl_zbc_eptotal[frame_num %
+                                    self.max_steps][i] += dkl_zbc
+            # bi prob
+            self.tm_bi_prob_eptotal[frame_num %
+                                    self.max_steps][i] += tm_bi_prob_new[i]
+        self.tm_bi_prob = tm_bi_prob_new
 
     def update_hypothesis(self):
 
@@ -219,6 +251,11 @@ class GoalRecogniser(object):
                 if "level" in obj_list:
                     obj_list.remove("level")
 
+                if "discount" in obj_list:
+                    i = obj_list.index("discount")
+                    obj_list.pop(i)
+                    weight_list.pop(i)
+
                 if set(obj_list) == set(required_objects):
                     tm_param = {}
                     tm_goal_dic = {}
@@ -263,40 +300,51 @@ class GoalRecogniser(object):
         trained_models_goal_dic, trained_models_path, trained_models_param = zip(
             *sorted_combined)
 
-        return list(trained_models_path), list(trained_models_goal_dic), list(trained_models_param)
+        return list(trained_models_path), list(trained_models_param)
 
     def reset(self):
-        self.tm_scores_kl = [0] * len(self.trained_model_paths)
-        self.tm_bayes_probs = [
-            1.0 / int(len(self.tm_scores_kl))] * int(len(self.tm_scores_kl))
+        self.tm_dkl_sum = [0] * len(self.tm_paths)
+        self.tm_bi_prob = [
+            1.0 / int(len(self.tm_dkl_sum))] * int(len(self.tm_dkl_sum))
+        self.tm_dkl_ravg_prev = [0] * len(self.tm_paths)
 
     def get_inference(self):
-        temp_min = max(self.tm_scores_kl)
+        temp_min = max(self.tm_dkl_sum)
         temp_min_id = 0
 
-        for i in range(len(self.tm_scores_kl)):
-            if self.tm_scores_kl[i] < temp_min:
-                temp_min = self.tm_scores_kl[i]
+        for i in range(len(self.tm_dkl_sum)):
+            if self.tm_dkl_sum[i] < temp_min:
+                temp_min = self.tm_dkl_sum[i]
                 temp_min_id = i
 
         return temp_min_id
 
     def get_result(self, max_frame, goal_str, ag_param=dict()):
-        avg_total = []
-        avg_step = []
-        avg_bp = []
+        avg_dkl_sum = []
+        avg_dkl_step = []
+        avg_dkl_ravg = []
+        avg_dkl_zbc = []
+        avg_bi_prob = []
 
-        total_ep = max_frame/self.max_steps
-        for step in range(len(self.tm_total_scores_each_step)):
-            avg_total_score_each_step = [
-                total_score/total_ep for total_score in self.tm_total_scores_each_step[step]]
-            avg_score_each_step = [
-                step_score/total_ep for step_score in self.tm_scores_each_step[step]]
-            avg_bp_each_step = [
-                bayes_prob/total_ep for bayes_prob in self.tm_bayes_probs_each_step[step]]
-            avg_total.append(avg_total_score_each_step)
-            avg_step.append(avg_score_each_step)
-            avg_bp.append(avg_bp_each_step)
+        ep_num = max_frame/self.max_steps
+        for step in range(len(self.tm_dkl_sum_eptotal)):
+            # savg = step avg
+            savg_dkl_sum = [
+                ep_total/ep_num for ep_total in self.tm_dkl_sum_eptotal[step]]
+            savg_dkl_step = [
+                ep_total/ep_num for ep_total in self.tm_dkl_step_eptotal[step]]
+            savg_dkl_ravg = [
+                ep_total/ep_num for ep_total in self.tm_dkl_ravg_eptotal[step]]
+            savg_dkl_zbc = [
+                ep_total/ep_num for ep_total in self.tm_dkl_zbc_eptotal[step]]
+            savg_bi_prob = [
+                ep_total/ep_num for ep_total in self.tm_bi_prob_eptotal[step]]
+
+            avg_dkl_sum.append(savg_dkl_sum)
+            avg_dkl_step.append(savg_dkl_step)
+            avg_dkl_ravg.append(savg_dkl_ravg)
+            avg_dkl_zbc.append(savg_dkl_zbc)
+            avg_bi_prob.append(savg_bi_prob)
 
         param_str = ''
         for param in sorted(ag_param.keys()):
@@ -304,30 +352,50 @@ class GoalRecogniser(object):
             if str(ag_param[param]) != '':
                 param_str += '_' + str(ag_param[param])
 
-        # KL DIV TOTAL SCORE
-        df = pd.DataFrame(data=avg_total)
+        # dkl sum
+        df = pd.DataFrame(data=avg_dkl_sum)
         plt.plot(df.index, df)
-        plt.legend(self.trained_model_paths)
+        plt.legend(self.tm_paths)
 
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_total_score.jpg"
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_sum.jpg"
         plt.savefig(fig_path)
 
         plt.clf()
 
-        # KL DIV STEP SCORE
-        df = pd.DataFrame(data=avg_step)
+        # dkl step
+        df = pd.DataFrame(data=avg_dkl_step)
         plt.plot(df.index, df)
-        plt.legend(self.trained_model_paths)
+        plt.legend(self.tm_paths)
 
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_step_score.jpg"
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_step.jpg"
         plt.savefig(fig_path)
 
         plt.clf()
 
-        # BAYES PROB
-        df = pd.DataFrame(data=avg_bp)
+        # dkl ravg
+        df = pd.DataFrame(data=avg_dkl_ravg)
         plt.plot(df.index, df)
-        plt.legend(self.trained_model_paths)
+        plt.legend(self.tm_paths)
 
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_bayes_prob.jpg"
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_ravg.jpg"
+        plt.savefig(fig_path)
+
+        plt.clf()
+
+        # dkl zbc
+        df = pd.DataFrame(data=avg_dkl_zbc)
+        plt.plot(df.index, df)
+        plt.legend(self.tm_paths)
+
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_zbc.jpg"
+        plt.savefig(fig_path)
+
+        plt.clf()
+
+        # bi prob
+        df = pd.DataFrame(data=avg_bi_prob)
+        plt.plot(df.index, df)
+        plt.legend(self.tm_paths)
+
+        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_bi_prob.jpg"
         plt.savefig(fig_path)

@@ -74,10 +74,10 @@ scenarios["train"] = {}
 
 scenarios["train"]["goal_sets"] = [
     # {"iron": 0.7, "wood": 1, "grass": -1}
-    # {"cloth": 0.7, "stick": 0.3}
+    {"cloth": 0, "stick": 0}
     # {"plank": 0.1, "stick": 0.9}
     # {"axe": 1, "bridge": 0.1}
-    {"gem": 0, "gold": 0}
+    # {"gem": 0, "gold": 0}
 ]
 
 scenarios["eval"] = {}
@@ -85,7 +85,7 @@ scenarios["eval"]["goal_sets"] = [
     # {"iron": 0.7, "wood": -1, "grass": 1}
     # {"gem": 0.7, "gold": 0.3}
     # {"axe": 1, "bridge": 0.5}
-    # {"cloth": 0.9, "stick": 0.1}
+    {"cloth": 0.9, "stick": 0.1}
     # {"plank": 0.9, "stick": 0.1}
 ]
 

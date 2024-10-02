@@ -435,6 +435,9 @@ class CooperativeCraftWorld(gym.Env):
         self.observation_space = gym.spaces.Box(
             low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)
 
+        print("Craftworld Init -- Observation space shape:",
+              self.observation_space.shape)
+
         self.exp_param = exp_param
         self.test_mode = test_mode
 
@@ -498,8 +501,7 @@ class CooperativeCraftWorld(gym.Env):
                             if item in v[1] and k in agent.goal_set:
                                 reward_dic[item] = 0.2
                                 break
-            print("Reward", reward_dic)
-            input()
+
             _reward.append(reward_dic)
 
         random.seed(seed)

@@ -130,10 +130,12 @@ class GoalRecogniser(object):
         tm_dkl_step = []
 
         for i in range(self.gr_num):
+            model_no = i
             if "uvfa" in self.tm_param[0]:
+                model_no = 0
                 self.tm_param[0]["uvfa"] = {
                     self.goal_list[0]: self.uvfa_weight[i][0], self.goal_list[1]: self.uvfa_weight[i][1]}
-            act_probs = self.calculate_action_probs(i, state)
+            act_probs = self.calculate_action_probs(model_no, state)
             tm_act_probs.append(act_probs)
 
             # kl div sum
@@ -178,7 +180,8 @@ class GoalRecogniser(object):
             if print_result:
                 tm_act_probs[i] = [round(float(x), 3) for x in tm_act_probs[i]]
                 a = str(i)+'.'
-                b = self.tm_paths[i]
+                b = str(
+                    self.uvfa_weight[i]) if "uvfa" in self.tm_param[0] else self.tm_paths[i]
                 c = round(self.tm_dkl_sum[i], 3)
                 d = round(dkl_ravg, 3)
                 e = round(dkl_zbc, 3)
@@ -258,6 +261,8 @@ class GoalRecogniser(object):
                         for obj in required_objects:
                             tm_goal_dic[obj] = weight_list[obj_list.index(
                                 obj)]
+                    else:
+                        tm_param['uvfa'] = []
 
                     if "belief" in tm_param:
                         pattern = r'_hidden_([a-zA-Z]*)_([a-zA-Z]*)'
@@ -296,12 +301,13 @@ class GoalRecogniser(object):
 
         return temp_min_id
 
-    def get_result(self, max_frame, goal_str, ag_param=dict()):
+    def get_result(self, max_frame, goal_str, ag_param={}, item_count_eptotal={}):
         avg_dkl_sum = []
         avg_dkl_step = []
         avg_dkl_ravg = []
         avg_dkl_zbc = []
         avg_bi_prob = []
+        avg_item_count = {k: [] for k in item_count_eptotal.keys()}
 
         ep_num = max_frame/self.max_steps
         for step in range(self.max_steps):
@@ -323,56 +329,41 @@ class GoalRecogniser(object):
             avg_dkl_zbc.append(savg_dkl_zbc)
             avg_bi_prob.append(savg_bi_prob)
 
+            for item in item_count_eptotal.keys():
+                avg_item_count[item].append(
+                    item_count_eptotal[item][step]/ep_num)
+
         param_str = ''
         for param in sorted(ag_param.keys()):
             param_str += '_' + param
             if str(ag_param[param]) != '':
                 param_str += '_' + str(ag_param[param])
 
-        # dkl sum
-        df = pd.DataFrame(data=avg_dkl_sum)
-        plt.plot(df.index, df)
-        plt.legend(self.tm_paths)
+        path = self.log_dir + "/" + goal_str + param_str + "_"
 
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_sum.jpg"
+        gr_result = [avg_dkl_sum, avg_dkl_step,
+                     avg_dkl_ravg, avg_dkl_zbc, avg_bi_prob]
+        gr_result_str = ["avg_dkl_sum", "avg_dkl_step",
+                         "avg_dkl_ravg", "avg_dkl_zbc", "avg_bi_prob"]
+
+        if "uvfa" in self.tm_param[0]:
+            legend = self.uvfa_weight
+        else:
+            legend = self.tm_paths
+        for i in range(len(gr_result)):
+            self.generate_graph(
+                gr_result[i], path, gr_result_str[i], legend)
+
+        # item count
+        for i in avg_item_count.keys():
+            self.generate_graph(avg_item_count[i], path, i, i)
+
+    def generate_graph(self, data, path, fname, legend):
+        df = pd.DataFrame(data=data)
+        plt.plot(df.index, df)
+        plt.legend(legend)
+
+        fig_path = path + fname + ".jpg"
         plt.savefig(fig_path)
 
         plt.clf()
-
-        # dkl step
-        df = pd.DataFrame(data=avg_dkl_step)
-        plt.plot(df.index, df)
-        plt.legend(self.tm_paths)
-
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_step.jpg"
-        plt.savefig(fig_path)
-
-        plt.clf()
-
-        # dkl ravg
-        df = pd.DataFrame(data=avg_dkl_ravg)
-        plt.plot(df.index, df)
-        plt.legend(self.tm_paths)
-
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_ravg.jpg"
-        plt.savefig(fig_path)
-
-        plt.clf()
-
-        # dkl zbc
-        df = pd.DataFrame(data=avg_dkl_zbc)
-        plt.plot(df.index, df)
-        plt.legend(self.tm_paths)
-
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_dkl_zbc.jpg"
-        plt.savefig(fig_path)
-
-        plt.clf()
-
-        # bi prob
-        df = pd.DataFrame(data=avg_bi_prob)
-        plt.plot(df.index, df)
-        plt.legend(self.tm_paths)
-
-        fig_path = self.log_dir + "/" + goal_str + param_str + "_avg_bi_prob.jpg"
-        plt.savefig(fig_path)

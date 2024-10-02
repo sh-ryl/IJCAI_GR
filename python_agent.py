@@ -277,7 +277,7 @@ agent_params["saved_model_dir"] = os.path.dirname(
 
 # Observer (GR) I/O Settings
 if gr_obs:
-    gr_models_root = '/mod/gr/'
+    gr_models_root = '/mod/ag/'
     gr_models_folder = gr_models_root
     model_dir = real_path + gr_models_folder
     print(f"GR model folder: {gr_models_folder}")
@@ -385,7 +385,12 @@ reset_all()
 input("Start?")
 print("---------------------------------------------")
 
+goal_item_count_eptotal = {k: [0] * max_steps for k in goal_dic.keys()}
+
 while frame_num < max_training_frames:
+    for item in goal_item_count_eptotal.keys():
+        goal_item_count_eptotal[item][frame_num %
+                                      max_steps] += state.inventory[state.player_turn][item]
     a = agent.perceive(reward, state, episode_done, eval_running)
 
     # print action chosen by agent
@@ -505,6 +510,6 @@ while frame_num < max_training_frames:
 
 if gr_obs:
     GR.get_result(max_training_frames, goal_dic_to_str(
-        goal_dic, inc_weight=True), gr_out_param)
+        goal_dic, inc_weight=True), gr_out_param, goal_item_count_eptotal)
 
 # endregion

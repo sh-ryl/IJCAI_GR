@@ -292,7 +292,6 @@ class CooperativeCraftWorldState():
         self.steps = 0
 
     def getRepresentation(self, gr_obs=False, gr_param=[]):
-
         # ADD objects on the environment
         rep = []
         max_dist = np.sqrt(

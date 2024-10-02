@@ -19,14 +19,13 @@ import matplotlib.pyplot as plt
 
 class GoalRecogniser(object):
 
-    def __init__(self, goal_list=[], model_temperature=0.1, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, IO_param=[], max_steps=100):
+    def __init__(self, goal_list=[], model_temperature=0.1, hypothesis_momentum=0.9999, kl_tolerance=0.0, saved_model_dir=None, dqn_config: DQN_Config = None, show_graph=False, log_dir=None, exp_param=[], max_steps=100):
 
         # IO Settings
         self.saved_model_dir = saved_model_dir
         self.show_graph = show_graph
         self.first_log_write = True
         self.log_dir = log_dir
-        self.probability_plot = Dialog()
 
         # GR Model Settings
         self.model_temperature = model_temperature
@@ -36,12 +35,11 @@ class GoalRecogniser(object):
 
         self.step_number = 0
         self.max_steps = max_steps
-        self.goal_list = goal_list
 
         # Load GR observer models
         self.trained_models = []
         self.tm_paths, self.tm_param = self.find_folders(
-            self.saved_model_dir, self.goal_list)
+            self.saved_model_dir, goal_list, exp_param)
 
         for i in range(len(self.tm_paths)):
             model_file = f'{self.tm_paths[i]}/model.chk'
@@ -61,61 +59,63 @@ class GoalRecogniser(object):
             print(
                 f"GR model {i}: {self.tm_paths[i]}, Param: {self.tm_param[i]}")
 
-        # Choose Models to include as observer
-        print()
-        print("Do you want to include all models listed above?")
-        start = input(
-            "Press [Enter] to include all\nPress [Other Keys then Enter] to edit ")
-        if start != "":
-            choice = input(
-                "Which models to remove? (Model number separated by comma) ")
-            choice = sorted([int(x) for x in choice.split(",")])
-            remove_count = 0
-            for i in choice:
-                print(
-                    f"REMOVING GR model: {self.tm_paths[i-remove_count]}")
-                self.tm_paths.pop(i-remove_count)
-                self.tm_param.pop(i-remove_count)
-                self.trained_models.pop(i-remove_count)
-                remove_count += 1
-
+        if "uvfa" in exp_param:
+            # currently only applied for goal preferences and for 2 weights
+            self.uvfa_weight = [(x/10, (10-x)/10) for x in range(1, 10, 1)]
+            self.goal_list = goal_list
+            print("UVFA observes these weights", self.uvfa_weight)
+        else:
+            # Choose Models to include as observer
             print()
-            print("Updated Model List")
-            for i in range(len(self.tm_paths)):
-                print(
-                    f"GR model {i}: {self.tm_paths[i]}, Param: {self.tm_param[i]}")
+            print("Do you want to include all models listed above?")
+            start = input(
+                "Press [Enter] to include all\nPress [Other Keys then Enter] to edit ")
+            if start != "":
+                choice = input(
+                    "Which models to remove? (Model number separated by comma) ")
+                choice = sorted([int(x) for x in choice.split(",")])
+                remove_count = 0
+                for i in choice:
+                    print(
+                        f"REMOVING GR model: {self.tm_paths[i-remove_count]}")
+                    self.tm_paths.pop(i-remove_count)
+                    self.tm_param.pop(i-remove_count)
+                    self.trained_models.pop(i-remove_count)
+                    remove_count += 1
+
+                print()
+                print("Updated Model List")
+                for i in range(len(self.tm_paths)):
+                    print(
+                        f"GR model {i}: {self.tm_paths[i]}, Param: {self.tm_param[i]}")
+
+        if "uvfa" in exp_param:
+            self.gr_num = len(self.uvfa_weight)
+        else:
+            self.gr_num = len(self.trained_models)
 
         # Init scores for evaluation
-        self.tm_dkl_sum = [0] * len(self.tm_paths)
+        self.tm_dkl_sum = [0] * self.gr_num
         self.tm_dkl_sum_eptotal = [[0 for y in range(
-            len(self.tm_paths))]for x in range(max_steps)]  # 100 for max timestep
+            self.gr_num)]for x in range(max_steps)]  # 100 for max timestep
         self.tm_dkl_step_eptotal = deepcopy(self.tm_dkl_sum_eptotal)
 
-        self.tm_dkl_ravg_prev = [0] * len(self.tm_paths)
+        self.tm_dkl_ravg_prev = [0] * self.gr_num
         self.tm_dkl_ravg_eptotal = deepcopy(self.tm_dkl_sum_eptotal)
         self.tm_dkl_zbc_eptotal = deepcopy(self.tm_dkl_sum_eptotal)
 
         self.tm_bi_prob = [
-            1.0 / int(len(self.tm_dkl_sum))] * int(len(self.tm_dkl_sum))
+            1.0 / int(self.gr_num)] * int(self.gr_num)
         self.tm_bi_prob_eptotal = deepcopy(
             self.tm_dkl_sum_eptotal)
 
-    def set_external_agent(self, other_agent: agent.Agent):
+    def reset(self):
+        self.tm_dkl_sum = [0] * self.gr_num
+        self.tm_bi_prob = [
+            1.0 / int(self.gr_num)] * int(self.gr_num)
+        self.tm_dkl_ravg_prev = [0] * self.gr_num
 
-        self.other_agent = other_agent
-
-        self.probability_plot.reset()
-        self.total_kl = np.zeros(
-            (len(self.other_agent.externally_visible_goal_sets)), dtype=np.float32)
-        self.total_kl_moving_avg = np.zeros(
-            (len(self.other_agent.externally_visible_goal_sets)), dtype=np.float32)
-        self.total_kl_moving_avg_debiased = np.zeros(
-            (len(self.other_agent.externally_visible_goal_sets)), dtype=np.float32)
-        self.moving_avg_updates = 0
-        self.current_hypothesis = None
-        self.step_number = 0
-
-    def calculate_action_probs(self, model_no, state, observed_action: int, max_value=100.0):
+    def calculate_action_probs(self, model_no, state):
         state = torch.from_numpy(state.getRepresentation(gr_obs=True,
                                                          gr_param=self.tm_param[model_no])).float().to(
             self.device).unsqueeze(0)
@@ -124,44 +124,48 @@ class GoalRecogniser(object):
         probs = F.softmax(q.div(self.model_temperature), dim=0)
         return probs
 
-    def softmax(self, x, temperature):
-
-        x = np.divide(x, temperature)
-        # Necessary to ensure that the sum of the values is close enough to 1.
-        e_x = np.exp(x - np.max(x)).astype(np.float64)
-        result = e_x / e_x.sum(axis=0)
-        result = result / result.sum(axis=0, keepdims=1)
-        return result
-
     def perceive(self, state, action: int, frame_num, print_result, momentum=0.95):
         bayes_pr_act = 0
         tm_act_probs = []
         tm_dkl_step = []
-        for i in range(len(self.trained_models)):
-            act_probs = self.calculate_action_probs(i, state, action)
+
+        for i in range(self.gr_num):
+            if "uvfa" in self.tm_param[0]:
+                self.tm_param[0]["uvfa"] = {
+                    self.goal_list[0]: self.uvfa_weight[i][0], self.goal_list[1]: self.uvfa_weight[i][1]}
+            act_probs = self.calculate_action_probs(i, state)
             tm_act_probs.append(act_probs)
 
             # kl div sum
             dkl_max = 100.0
             dkl_step = min(act_probs[action].pow(-1).log().item(), dkl_max)
+            self.tm_dkl_sum[i] += dkl_step
             tm_dkl_step.append(dkl_step)
 
             # bayes prob
             bayes_pr_act += self.tm_bi_prob[i] * act_probs[action]
 
-        tm_bi_prob_new = [0] * len(self.trained_models)
+        tm_bi_prob_new = [0] * self.gr_num
         eps = 1e-20
         if print_result:
             print()
             print("---------------- GR Inference ---------------")
+            col = ['No.',
+                   'trained model paths',
+                   'DKL sum',
+                   'DKL ravg',
+                   'DKL zbc',
+                   'BI prob',
+                   'action prob']
             print(
-                f"{'No.':3} {'Trained Model Paths':60} {'Sum DKL':10} {'Run DKL':10} {'ZBC DKL':10} {'BI Prob':10} Action Probabilities")
+                f"{col[0]:3} {col[1]:60} {col[2]:10} {col[3]:10} {col[4]:10} {col[5]:10} {col[6]}")
             print()
 
-        for i in range(len(self.trained_models)):
+        for i in range(self.gr_num):
             # kl div running avg
             dkl_ravg = momentum * \
                 self.tm_dkl_ravg_prev[i] + (1 - momentum) * tm_dkl_step[i]
+            self.tm_dkl_ravg_prev[i] = dkl_ravg
 
             # kl div zero bias corrected
             denom = 1 - pow(momentum, ((frame_num % self.max_steps) + 1))
@@ -185,14 +189,12 @@ class GoalRecogniser(object):
 
             # update scores
             # dkl sum
-            self.tm_dkl_sum[i] += tm_dkl_step[i]
             self.tm_dkl_sum_eptotal[frame_num %
                                     self.max_steps][i] += self.tm_dkl_sum[i]
             self.tm_dkl_step_eptotal[frame_num %
                                      self.max_steps][i] += tm_dkl_step[i]
 
             # dkl ravg
-            self.tm_dkl_ravg_prev[i] = dkl_ravg
             self.tm_dkl_ravg_eptotal[frame_num %
                                      self.max_steps][i] += dkl_ravg
 
@@ -204,49 +206,37 @@ class GoalRecogniser(object):
                                     self.max_steps][i] += tm_bi_prob_new[i]
         self.tm_bi_prob = tm_bi_prob_new
 
-    def update_hypothesis(self):
-
-        arg_min = np.argmin(self.total_kl_moving_avg_debiased)
-        min_kl = self.total_kl_moving_avg_debiased[arg_min]
-
-        selected_goals = []
-        for i in range(0, len(self.total_kl_moving_avg_debiased)):
-            if self.total_kl_moving_avg_debiased[i] <= min_kl + self.kl_tolerance:
-                selected_goals.append(
-                    self.other_agent.externally_visible_goal_sets[i])
-
-        self.current_hypothesis = selected_goals[0]
-        for i in range(1, len(selected_goals)):
-            self.current_hypothesis = self.current_hypothesis + \
-                "_and_" + selected_goals[i]
-
-    def find_folders(self, directory, required_objects):
-        trained_models_path = []
-        trained_models_goal_dic = []
-        trained_models_param = []
+    def find_folders(self, directory, required_objects, exp_param):
+        c_tm_path = []
+        c_tm_goal_dic = []
+        c_tm_param = []
         param_set = {"limit", "belief", "uvfa", "ability"}
 
         # Iterate through the directory
         for root, dirs, files in os.walk(directory):
             # Get the directory name before the subdirectory
             # to split "\" because windows don't follow unix style
-            base_folder = list(chain.from_iterable(
+            root_split = list(chain.from_iterable(
                 [x.split("\\") for x in root.split('/')]))
 
             for folder_name in dirs:
+                obj_list = []
+                weight_list = []
                 # filter out other folders
-                if "uvfa" in base_folder:  # and "uvfa" in self.IO_param: # CHECK FOR UVFA LATER
-                    pattern = r'([a-zA-Z]+_[a-zA-Z]+)'
+                if "uvfa" in exp_param:
+                    pattern = r'([a-zA-Z]+)_([a-zA-Z]+)'  # uvfa pattern
+                    result = re.findall(pattern, folder_name)
+                    if result:
+                        obj_list = list(result[0])
                 else:
+
                     # currently regex works if number is less than 1 with comma or more than 1 without comma
                     pattern = r'([a-zA-Z]+_-*\d+\.?\d*)'
-                matches = [x.split('_')
-                           for x in re.findall(pattern, folder_name)]
-                if "uvfa" in base_folder:  # and "uvfa" in self.IO_param:
-                    obj_list = matches[0]
-                else:
-                    obj_list = [x[0] for x in matches]
-                    weight_list = [float(x[1]) for x in matches]
+                    result = re.findall(pattern, folder_name)
+                    if result:
+                        matches = [x.split('_') for x in result]
+                        obj_list = [x[0] for x in matches]
+                        weight_list = [float(x[1]) for x in matches]
 
                 if "level" in obj_list:
                     obj_list.remove("level")
@@ -260,23 +250,15 @@ class GoalRecogniser(object):
                     tm_param = {}
                     tm_goal_dic = {}
 
-                    for param in param_set.intersection(base_folder):
+                    for param in param_set.intersection(root_split):
                         tm_param[param] = ''
 
-                    if "uvfa" in tm_param:
-                        tm_param["uvfa"] = obj_list
-
-                        # get goal dic
-                        for obj in required_objects:
-                            tm_goal_dic[obj] = 0
-                    else:
-
+                    if "uvfa" not in exp_param:
                         # get goal dic
                         for obj in required_objects:
                             tm_goal_dic[obj] = weight_list[obj_list.index(
                                 obj)]
 
-                    # get param
                     if "belief" in tm_param:
                         pattern = r'_hidden_([a-zA-Z]*)_([a-zA-Z]*)'
                         result = re.findall(pattern, folder_name)[0]
@@ -287,32 +269,27 @@ class GoalRecogniser(object):
                         result = re.findall(pattern, folder_name)
                         tm_param['ability'] = result
 
-                    trained_models_path.append(root+'/'+folder_name)
-                    trained_models_param.append(tm_param)
-                    trained_models_goal_dic.append(tm_goal_dic)
+                    c_tm_path.append(root+'/'+folder_name)
+                    c_tm_param.append(tm_param)
+                    c_tm_goal_dic.append(tm_goal_dic)
 
-        combined = zip(trained_models_goal_dic,
-                       trained_models_path, trained_models_param)
-        sorted_combined = sorted(
-            combined, key=lambda x: x[0][required_objects[0]])
+        if "uvfa" not in exp_param:
+            combined = zip(c_tm_goal_dic,
+                           c_tm_path, c_tm_param)
+            sorted_combined = sorted(
+                combined, key=lambda x: x[0][required_objects[0]])
 
-        # Extract sorted combined tuples
-        trained_models_goal_dic, trained_models_path, trained_models_param = zip(
-            *sorted_combined)
+            # Extract sorted combined tuples
+            c_tm_goal_dic, c_tm_path, c_tm_param = zip(
+                *sorted_combined)
 
-        return list(trained_models_path), list(trained_models_param)
-
-    def reset(self):
-        self.tm_dkl_sum = [0] * len(self.tm_paths)
-        self.tm_bi_prob = [
-            1.0 / int(len(self.tm_dkl_sum))] * int(len(self.tm_dkl_sum))
-        self.tm_dkl_ravg_prev = [0] * len(self.tm_paths)
+        return list(c_tm_path), list(c_tm_param)
 
     def get_inference(self):
         temp_min = max(self.tm_dkl_sum)
         temp_min_id = 0
 
-        for i in range(len(self.tm_dkl_sum)):
+        for i in range(self.gr_num):
             if self.tm_dkl_sum[i] < temp_min:
                 temp_min = self.tm_dkl_sum[i]
                 temp_min_id = i
@@ -327,7 +304,7 @@ class GoalRecogniser(object):
         avg_bi_prob = []
 
         ep_num = max_frame/self.max_steps
-        for step in range(len(self.tm_dkl_sum_eptotal)):
+        for step in range(self.max_steps):
             # savg = step avg
             savg_dkl_sum = [
                 ep_total/ep_num for ep_total in self.tm_dkl_sum_eptotal[step]]

@@ -140,6 +140,11 @@ else:
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
     gpu = -1  # Use CPU when not training
 
+exp_param = sys.argv[2::]
+exp_param_path = ''
+ab_rating = {}
+
+# exp_param flags
 env_render = False
 gr_obs = False
 print_result = False
@@ -148,77 +153,73 @@ limit = False
 ability = False
 uvfa = False
 
-IO_param_path = ''
-IO_param = sys.argv[2::]
-ab_rating = {}
-
-if "render" in IO_param:
+if "render" in exp_param:
     env_render = True
-    IO_param.remove('render')
+    exp_param.remove('render')
     print("Rendering environment ON")
 else:
     print("Rendering environment OFF")
 
-if "GR" in IO_param:
+if "GR" in exp_param:
     gr_obs = True
-    gr_obs_output_param = {}
-    IO_param.remove('GR')
+    gr_out_param = {}
+    exp_param.remove('GR')
     print("GR Observer is ON")
 else:
     print("GR Observer is OFF")
 
-if "result" in IO_param:
-    IO_param.remove('result')
+if "result" in exp_param:
+    exp_param.remove('result')
     if gr_obs:
         print_result = True
         print("Printing result from GR")
 
-if "limit" in IO_param:
+if "limit" in exp_param:
     limit = True
     print("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1")
-    IO_param_path += 'limit/'
+    exp_param_path += 'limit/'
     if gr_obs:
-        gr_obs_output_param['limit'] = ''
+        gr_out_param['limit'] = ''
 else:
     print("Max inventory is 999 for all ingredients")
 
-if "uvfa" in IO_param:
+if "uvfa" in exp_param:
     uvfa = True
     print("UVFA is ON")
     if gr_obs:
-        gr_obs_output_param['uvfa'] = ''
+        gr_out_param['uvfa'] = ''
 else:
     print("UVFA is OFF")
 
-if "belief" in IO_param:
+if "belief" in exp_param:
     belief = True
     print("Using hidden items")
-    IO_param_path += 'belief/'
+    exp_param_path += 'belief/'
     if gr_obs:
-        gr_obs_output_param['belief'] = ''
+        gr_out_param['belief'] = ''
 
-if "ability" in IO_param:
+if "ability" in exp_param:
     ability = True
     print("Using ability")
-    IO_param_path += 'ability/'
+    exp_param_path += 'ability/'
     ab_rating['player'] = int(input("Enter ability rating for player: "))
     ab_rating['craft'] = 100
     print("Ability rating for craft action is set to 100")
     if gr_obs:
-        gr_obs_output_param['ability'] = ab_rating['player']
+        gr_out_param['ability'] = ab_rating['player']
 
 # just to label a certain training model
 custom_param = input(
     "Enter any custom param for agent model (leave empty when not used): ")
 if custom_param != "":
-    IO_param.append(custom_param)
+    exp_param.append(custom_param)
     if gr_obs:
-        gr_obs_output_param[custom_param] = ''
+        gr_out_param[custom_param] = ''
 # endregion
 
 # region ENV INIT
 env = CooperativeCraftWorld(current_scenario, size=size, n_agents=n_agents, allow_no_op=False, render=env_render,
-                            ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, IO_param=IO_param, ab_rating=ab_rating)
+                            ingredient_regen=current_scenario["regeneration"], max_steps=max_steps, exp_param=exp_param, ab_rating=ab_rating, test_mode=agent_params["test_mode"])
 # endregion
 
 agent_params["agent_type"] = "dqn"
@@ -234,12 +235,12 @@ agent_params["adam_beta2"] = 0.999
 real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
-ag_models_root = '/ag_model/'
-ag_models_folder = ag_models_root + IO_param_path
+ag_models_root = '/mod/ag/'
+ag_models_folder = ag_models_root + exp_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
-if uvfa and not gr_obs:
+if uvfa:
     result_folder = ag_models_folder + \
         goal_dic_to_str(goal_dic, inc_weight=False)
 if belief:
@@ -276,11 +277,12 @@ agent_params["saved_model_dir"] = os.path.dirname(
 
 # Observer (GR) I/O Settings
 if gr_obs:
-    gr_models_root = '/gr_model/'
+    gr_models_root = '/mod/gr/'
     gr_models_folder = gr_models_root
     model_dir = real_path + gr_models_folder
     print(f"GR model folder: {gr_models_folder}")
-    goal_log_path = real_path + '/gr_log/' + \
+
+    goal_log_path = real_path + '/mod/gr_log/' + \
         goal_dic_to_str(goal_dic, inc_weight=False)  # doesn't include weight
     if not os.path.exists(goal_log_path):
         os.makedirs(goal_log_path)
@@ -374,13 +376,10 @@ if gr_obs:
     # creates a separate config for gr and agent
     gr_dqn_config = deepcopy(agent_params["dqn_config"])
     GR = GoalRecogniser(goal_list=list(goal_dic.keys()), saved_model_dir=model_dir,
-                        dqn_config=gr_dqn_config, log_dir=goal_log_path, IO_param=IO_param, max_steps=max_steps)
+                        dqn_config=gr_dqn_config, log_dir=goal_log_path, exp_param=exp_param, max_steps=max_steps)
 # endregion
 
 reset_all()
-
-if gr_obs:
-    GR.set_external_agent(agent)
 
 # region MAIN LOOP
 input("Start?")
@@ -389,6 +388,7 @@ print("---------------------------------------------")
 while frame_num < max_training_frames:
     a = agent.perceive(reward, state, episode_done, eval_running)
 
+    # print action chosen by agent
     if env_render:
         a_str = ''
         if a == 0:
@@ -407,10 +407,6 @@ while frame_num < max_training_frames:
             a_str = "NO_OP"
         print(f"Action taken: {a} {a_str}")
 
-    # get count of picking up grass
-    grass_ep_count = state.inventory[0]["grass"]
-    wood_ep_count = state.inventory[0]["wood"]
-
     if gr_obs:
         GR.perceive(state, a, frame_num, print_result=print_result)
 
@@ -427,12 +423,7 @@ while frame_num < max_training_frames:
         frame_num += 1
 
     # print results
-    if env_render:  # or gr_obs:
-        if gr_obs:
-            1
-            # print("Inferred model:", GR.get_inference())
-            # print()
-
+    if env_render:
         print("Inventory")
         print(
             {key: val for key, val in state.inventory[0].items() if val > 0})
@@ -440,21 +431,17 @@ while frame_num < max_training_frames:
 
         print("Agent")
         print(f"root folder \t goal sets \t\t\t\t param")
-        print(f"{ag_models_root} \t {goal_dic} \t {IO_param}")
+        print(f"{ag_models_root} \t {goal_dic} \t {exp_param}")
         print()
 
         print(f"Timestep: {frame_num} \t Total reward: {total_reward}")
         print("---------------------------------------------")
         print()
 
-        if env_render:
-            input()
+        input()
 
     # handle episode done
     if episode_done:
-        if gr_obs and not env_render:
-            1  # input()
-
         if eval_running:  # This is only run during training
             print('Evaluation time step: ' + str(steps_since_eval_began) +
                   ', episode ended with score: ' + str(total_reward))
@@ -518,6 +505,6 @@ while frame_num < max_training_frames:
 
 if gr_obs:
     GR.get_result(max_training_frames, goal_dic_to_str(
-        goal_dic, inc_weight=True), gr_obs_output_param)
+        goal_dic, inc_weight=True), gr_out_param)
 
 # endregion

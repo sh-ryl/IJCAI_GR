@@ -1,3 +1,5 @@
 *.pyc
 results
 venv
+scenario.py
+mod

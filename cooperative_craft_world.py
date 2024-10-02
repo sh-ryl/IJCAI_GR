@@ -94,7 +94,7 @@ class Screen():
 
 class CooperativeCraftWorldState():
 
-    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, hidden_items=[], IO_param=[], ab_rating=[]):
+    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, hidden_items=[], exp_param=[], ab_rating=[]):
         self.player_turn = 0
         self.action_space = action_space
         self.n_agents = n_agents
@@ -106,8 +106,12 @@ class CooperativeCraftWorldState():
         self.hidden_items = hidden_items
 
         self.belief = False
-        if "belief" in IO_param:
+        if "belief" in exp_param:
             self.belief = True
+
+        self.uvfa = False
+        if "uvfa" in exp_param:
+            self.uvfa = True
 
         self._max_inventory = {
             "wood": 999,
@@ -117,7 +121,7 @@ class CooperativeCraftWorldState():
             "gold": 999
         }
 
-        if "limit" in IO_param:
+        if "limit" in exp_param:
             self._max_inventory = {
                 "wood": 1,
                 "iron": 1,
@@ -128,7 +132,7 @@ class CooperativeCraftWorldState():
 
         self.ab_rating = ab_rating
 
-        self.IO_param = IO_param
+        self.exp_param = exp_param
 
     def step(self, action, assumed_reward_func=_reward):
 
@@ -217,7 +221,7 @@ class CooperativeCraftWorldState():
                                         for x in range(required_count):
                                             self.objects[raw_item].append(
                                                 self.get_free_square())
-                            if "fail_neg" in self.IO_param:
+                            if "fail_neg" in self.exp_param:
                                 # Negative reward when agent failed to craft
                                 reward[self.player_turn] -= 1
                             break
@@ -348,10 +352,18 @@ class CooperativeCraftWorldState():
         rep.append(self.steps / self.max_steps)
 
         # ADD reward
-        if "uvfa" in _reward:
+        if self.uvfa and not gr_obs:
             for item in sorted_keys:
-                rep.append(_reward[self.player_turn][item])
-
+                if _reward != []:
+                    rep.append(_reward[self.player_turn][item])
+                else:
+                    rep.append(0)
+        if "uvfa" in gr_param:
+            for item in sorted_keys:
+                if item in gr_param["uvfa"]:
+                    rep.append(gr_param["uvfa"][item])
+                else:
+                    rep.append(0)
         return np.array(rep, dtype=np.float32)
 
     def render(self, use_delay=False, log_dir=None):
@@ -398,7 +410,7 @@ class CooperativeCraftWorldState():
 
 class CooperativeCraftWorld(gym.Env):
 
-    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300, IO_param=[], ab_rating=[]):
+    def __init__(self, scenario, size=(10, 10), n_agents=1, allow_no_op=False, render=False, ingredient_regen=True, max_steps=300, exp_param=[], ab_rating=[], test_mode=False):
 
         global _num_spawned
         _num_spawned = scenario["num_spawned"]
@@ -414,16 +426,17 @@ class CooperativeCraftWorld(gym.Env):
             self.action_space = gym.spaces.Discrete(6)
 
         hidden_items = []
-        if "belief" in IO_param:
+        if "belief" in exp_param:
             hidden_items = scenario["hidden_items"][0]
 
         self.state = CooperativeCraftWorldState(
-            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, hidden_items=hidden_items, IO_param=IO_param, ab_rating=ab_rating)
+            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, hidden_items=hidden_items, exp_param=exp_param, ab_rating=ab_rating)
 
         self.observation_space = gym.spaces.Box(
             low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)
 
-        self.IO_param = IO_param
+        self.exp_param = exp_param
+        self.test_mode = test_mode
 
     # This 'step' is defined just to meet the requirements of gym.Env.
     # It returns a numpy array representation of the state based on an 'eye' encoding.
@@ -461,28 +474,32 @@ class CooperativeCraftWorld(gym.Env):
             reward_dic = {}
 
             # get randomized number sum to 1 for uvfa rewards
-            if "uvfa" in self.IO_param:
-                reward_list = np.random.dirichlet(
-                    np.ones(len(agent.goal_set.keys())))
-                # VERY HACKY FLAG :) so that state can know which one has uvfa
+            if "uvfa" in self.exp_param:
+                if not self.test_mode:
+                    reward_list = np.random.dirichlet(
+                        np.ones(len(agent.goal_set.keys())))
+                    # VERY HACKY FLAG :) so that state can know which one has uvfa
+                else:
+                    reward_list = agent.goal_set
                 reward_dic["uvfa"] = 0
 
             for item in _rewardable_items:
                 if item in agent.goal_set.keys():
-                    if "uvfa" in self.IO_param:
+                    if "uvfa" in self.exp_param and not self.test_mode:
                         item_id = list(agent.goal_set.keys()).index(item)
                         reward_dic[item] = reward_list[item_id]
                     else:
                         reward_dic[item] = agent.goal_set[item]
                 else:
                     reward_dic[item] = 0
-                    if "incentive" in self.IO_param:
+                    if "incentive" in self.exp_param:
                         # Incentivize collecting req items to craft goal set
                         for k, v in _recipes.items():
                             if item in v[1] and k in agent.goal_set:
                                 reward_dic[item] = 0.2
                                 break
-
+            print("Reward", reward_dic)
+            input()
             _reward.append(reward_dic)
 
         random.seed(seed)

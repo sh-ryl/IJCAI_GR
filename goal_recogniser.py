@@ -351,19 +351,21 @@ class GoalRecogniser(object):
         else:
             legend = self.tm_paths
         for i in range(len(gr_result)):
-            self.generate_graph(
-                gr_result[i], path, gr_result_str[i], legend)
+            self.generate_output(
+                gr_result[i], path, gr_result_str[i])
 
         # item count
-        for i in avg_item_count.keys():
-            self.generate_graph(avg_item_count[i], path, i, i)
+        self.generate_output(pd.DataFrame(avg_item_count),
+                             path, "avg_item_count")
 
-    def generate_graph(self, data, path, fname, legend):
-        df = pd.DataFrame(data=data)
-        plt.plot(df.index, df)
-        plt.legend(legend)
+    def generate_output(self, data, path, fname):
+        data = np.asarray(data)
+        np.savetxt(path+fname+".csv", data, delimiter=",")
+        # df = pd.DataFrame(data=data)
+        # plt.plot(df.index, df)
+        # plt.legend(legend)
 
-        fig_path = path + fname + ".jpg"
-        plt.savefig(fig_path)
+        # fig_path = path + fname + ".jpg"
+        # plt.savefig(fig_path)
 
-        plt.clf()
+        # plt.clf()

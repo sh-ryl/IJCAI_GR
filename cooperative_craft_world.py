@@ -94,7 +94,7 @@ class Screen():
 
 class CooperativeCraftWorldState():
 
-    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, hidden_items=[], exp_param=[], ab_rating=[]):
+    def __init__(self, size, action_space, n_agents=1, ingredient_regen=True, max_steps=300, hidden_items=[], exp_param=[], ab_rating=[], test_mode=False):
         self.player_turn = 0
         self.action_space = action_space
         self.n_agents = n_agents
@@ -133,6 +133,7 @@ class CooperativeCraftWorldState():
         self.ab_rating = ab_rating
 
         self.exp_param = exp_param
+        self.test_mode = test_mode
 
     def step(self, action, assumed_reward_func=_reward):
 
@@ -351,7 +352,8 @@ class CooperativeCraftWorldState():
         rep.append(self.steps / self.max_steps)
 
         # ADD reward
-        if self.uvfa and not gr_obs:
+        # COMMENT OUT "and not self.test_mode" TO USE UVFA MODEL FOR AGENT
+        if self.uvfa and not gr_obs and not self.test_mode:
             for item in sorted_keys:
                 if _reward != []:
                     rep.append(_reward[self.player_turn][item])
@@ -429,7 +431,7 @@ class CooperativeCraftWorld(gym.Env):
             hidden_items = scenario["hidden_items"][0]
 
         self.state = CooperativeCraftWorldState(
-            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, hidden_items=hidden_items, exp_param=exp_param, ab_rating=ab_rating)
+            size, self.action_space, n_agents=n_agents, ingredient_regen=ingredient_regen, max_steps=max_steps, hidden_items=hidden_items, exp_param=exp_param, ab_rating=ab_rating, test_mode=test_mode)
 
         self.observation_space = gym.spaces.Box(
             low=0, high=1, shape=self.state.getRepresentation().shape, dtype=np.float32)

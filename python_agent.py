@@ -7,6 +7,7 @@ import scenario
 from random import randrange
 
 from cooperative_craft_world import CooperativeCraftWorld
+from cooperative_craft_world import _rewardable_items
 
 from neural_q_learner import NeuralQLearner
 from dqn import DQN_Config
@@ -240,7 +241,7 @@ ag_models_folder = ag_models_root + exp_param_path
 
 # saving/loading agent model for specific reward weightings
 result_folder = ag_models_folder + goal_dic_to_str(goal_dic, inc_weight=True)
-if uvfa:
+if uvfa and not gr_obs:  # COMMENT OUT "and not gr_obs" TO USE UVFA MODEL FOR AGENT
     result_folder = ag_models_folder + \
         goal_dic_to_str(goal_dic, inc_weight=False)
 if belief:
@@ -277,7 +278,7 @@ agent_params["saved_model_dir"] = os.path.dirname(
 
 # Observer (GR) I/O Settings
 if gr_obs:
-    gr_models_root = '/mod/ag/'
+    gr_models_root = '/mod/gr/'
     gr_models_folder = gr_models_root
     model_dir = real_path + gr_models_folder
     print(f"GR model folder: {gr_models_folder}")
@@ -296,6 +297,8 @@ agent_params["n_step_n"] = 1
 agent_params["max_reward"] = 2.0  # 1.0 # Use float("inf") for no clipping
 agent_params["min_reward"] = -2.0  # -1.0 # Use float("-inf") for no clipping
 agent_params["exploration_style"] = "e_greedy"  # e_greedy, e_softmax
+if agent_params["test_mode"]:
+    agent_params["exploration_style"] = "e_softmax"  # e_greedy, e_softmax
 agent_params["softmax_temperature"] = 0.05
 agent_params["ep_start"] = 1
 agent_params["ep_end"] = 0.01
@@ -385,12 +388,12 @@ reset_all()
 input("Start?")
 print("---------------------------------------------")
 
-goal_item_count_eptotal = {k: [0] * max_steps for k in goal_dic.keys()}
+item_count_eptotal = {k: [0] * max_steps for k in _rewardable_items}
 
 while frame_num < max_training_frames:
-    for item in goal_item_count_eptotal.keys():
-        goal_item_count_eptotal[item][frame_num %
-                                      max_steps] += state.inventory[state.player_turn][item]
+    for item in item_count_eptotal.keys():
+        item_count_eptotal[item][frame_num %
+                                 max_steps] += state.inventory[state.player_turn][item]
     a = agent.perceive(reward, state, episode_done, eval_running)
 
     # print action chosen by agent
@@ -510,6 +513,6 @@ while frame_num < max_training_frames:
 
 if gr_obs:
     GR.get_result(max_training_frames, goal_dic_to_str(
-        goal_dic, inc_weight=True), gr_out_param, goal_item_count_eptotal)
+        goal_dic, inc_weight=True), gr_out_param, item_count_eptotal)
 
 # endregion

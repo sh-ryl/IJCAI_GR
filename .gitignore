@@ -1,5 +1,7 @@
 *.pyc
+result
 results
 venv
 scenario.py
 mod
+.DS_Store

@@ -137,13 +137,13 @@ if sys.argv[1] == "train":
     n_agents = 1
     if torch.cuda.is_available():
         gpu = 0
-        check_out.write("Training using CUDA")
+        check_out.write("Training using CUDA\n")
     else:
         gpu = -1
-        check_out.write("Training using CPU")
+        check_out.write("Training using CPU\n")
 
 else:
-    check_out.write("Testing with CPU")
+    check_out.write("Testing with CPU\n")
     agent_params["test_mode"] = True
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
     gpu = -1  # Use CPU when not training
@@ -164,63 +164,62 @@ uvfa = False
 if "render" in exp_param:
     env_render = True
     exp_param.remove('render')
-    check_out.write("Rendering environment ON")
+    check_out.write("Rendering environment ON\n")
 else:
-    check_out.write("Rendering environment OFF")
+    check_out.write("Rendering environment OFF\n")
 
 if "GR" in exp_param:
     gr_obs = True
     gr_out_param = {}
     exp_param.remove('GR')
-    check_out.write("GR Observer is ON")
+    check_out.write("GR Observer is ON\n")
 else:
-    check_out.write("GR Observer is OFF")
+    check_out.write("GR Observer is OFF\n")
 
 if "result" in exp_param:
     exp_param.remove('result')
     if gr_obs:
         print_result = True
-        check_out.write("Printing result from GR")
+        check_out.write("Printing result from GR\n")
 
 if "limit" in exp_param:
     limit = True
-    check_out.write("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1")
+    check_out.write("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1\n")
     exp_param_path += 'limit/'
     if gr_obs:
         gr_out_param['limit'] = ''
 else:
-    check_out.write("Max inventory is 999 for all ingredients")
+    check_out.write("Max inventory is 999 for all ingredients\n")
 
 if "uvfa" in exp_param:
     uvfa = True
-    check_out.write("UVFA is ON")
+    check_out.write("UVFA is ON\n")
     if gr_obs:
         gr_out_param['uvfa'] = ''
 else:
-    check_out.write("UVFA is OFF")
+    check_out.write("UVFA is OFF\n")
 
 if "belief" in exp_param:
     belief = True
-    check_out.write("Using hidden items")
+    check_out.write("Using hidden items\n")
     exp_param_path += 'belief/'
     if gr_obs:
         gr_out_param['belief'] = ''
 
 if "ability" in exp_param:
     ability = True
-    check_out.write("Using ability")
+    check_out.write("Using ability\n")
     exp_param_path += 'ability/'
     ab_rating['player'] = int(input("Enter ability rating for player: "))
     ab_rating['craft'] = 100
-    check_out.write("Ability rating for craft action is set to 100")
+    check_out.write("Ability rating for craft action is set to 100\n")
     if gr_obs:
         gr_out_param['ability'] = ab_rating['player']
 
 
 
 # just to label a certain training model
-custom_param = input(
-    "Enter any custom param for agent model (leave empty when not used): ")
+custom_param = "" #input("Enter any custom param for agent model (leave empty when not used): ")
 if custom_param != "":
     exp_param.append(custom_param)
     if gr_obs:
@@ -267,8 +266,8 @@ agent_params["log_dir"] = real_path + f'{result_folder}/'
 
 if not os.path.exists(agent_params["log_dir"]) and not gr_obs:
     os.makedirs(agent_params["log_dir"])
-    check_out.write(f"Created new folder: {agent_params['log_dir']}")
-check_out.write(f"Agent model loaded: {result_folder}")
+    check_out.write(f"Created new folder: {agent_params['log_dir']}\n")
+check_out.write(f"Agent model loaded: {result_folder}\n")
 
 training_scores_file = "training_scores.csv"
 with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
@@ -362,9 +361,9 @@ eval_total_episodes = 0
 best_eval_average = float("-inf")
 episode_done = False
 
-check_out.write("MAX steps", max_steps)
-check_out.write("MAX training frame", max_training_frames)
-check_out.write("Total Episode", max_training_frames/max_steps)
+check_out.write("MAX steps", max_steps, "\n")
+check_out.write("MAX training frame", max_training_frames, "\n")
+check_out.write("Total Episode", max_training_frames/max_steps, "\n")
 check_out.close()
 # endregion
 

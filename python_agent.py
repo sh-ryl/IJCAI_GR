@@ -18,6 +18,8 @@ import torch
 
 from copy import deepcopy
 
+import datetime
+
 ctx = decimal.Context()
 ctx.prec = 20
 
@@ -125,18 +127,23 @@ if "hidden_items" not in current_scenario:
 
 agent_params = {}
 
+# setup scrum output to check if everything is set correctly
+
+date = datetime.datetime.now()
+check_out = open(f"check_out_{date}.txt", "w") 
+
 if sys.argv[1] == "train":
     agent_params["test_mode"] = False
     n_agents = 1
     if torch.cuda.is_available():
         gpu = 0
-        print("Training using CUDA")
+        check_out.write("Training using CUDA")
     else:
         gpu = -1
-        print("Training using CPU")
+        check_out.write("Training using CPU")
 
 else:
-    print("Testing with CPU")
+    check_out.write("Testing with CPU")
     agent_params["test_mode"] = True
     n_agents = 1  # 2 # Change for this code since we are only doing single agent GR
     gpu = -1  # Use CPU when not training
@@ -157,57 +164,59 @@ uvfa = False
 if "render" in exp_param:
     env_render = True
     exp_param.remove('render')
-    print("Rendering environment ON")
+    check_out.write("Rendering environment ON")
 else:
-    print("Rendering environment OFF")
+    check_out.write("Rendering environment OFF")
 
 if "GR" in exp_param:
     gr_obs = True
     gr_out_param = {}
     exp_param.remove('GR')
-    print("GR Observer is ON")
+    check_out.write("GR Observer is ON")
 else:
-    print("GR Observer is OFF")
+    check_out.write("GR Observer is OFF")
 
 if "result" in exp_param:
     exp_param.remove('result')
     if gr_obs:
         print_result = True
-        print("Printing result from GR")
+        check_out.write("Printing result from GR")
 
 if "limit" in exp_param:
     limit = True
-    print("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1")
+    check_out.write("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1")
     exp_param_path += 'limit/'
     if gr_obs:
         gr_out_param['limit'] = ''
 else:
-    print("Max inventory is 999 for all ingredients")
+    check_out.write("Max inventory is 999 for all ingredients")
 
 if "uvfa" in exp_param:
     uvfa = True
-    print("UVFA is ON")
+    check_out.write("UVFA is ON")
     if gr_obs:
         gr_out_param['uvfa'] = ''
 else:
-    print("UVFA is OFF")
+    check_out.write("UVFA is OFF")
 
 if "belief" in exp_param:
     belief = True
-    print("Using hidden items")
+    check_out.write("Using hidden items")
     exp_param_path += 'belief/'
     if gr_obs:
         gr_out_param['belief'] = ''
 
 if "ability" in exp_param:
     ability = True
-    print("Using ability")
+    check_out.write("Using ability")
     exp_param_path += 'ability/'
     ab_rating['player'] = int(input("Enter ability rating for player: "))
     ab_rating['craft'] = 100
-    print("Ability rating for craft action is set to 100")
+    check_out.write("Ability rating for craft action is set to 100")
     if gr_obs:
         gr_out_param['ability'] = ab_rating['player']
+
+
 
 # just to label a certain training model
 custom_param = input(
@@ -258,8 +267,8 @@ agent_params["log_dir"] = real_path + f'{result_folder}/'
 
 if not os.path.exists(agent_params["log_dir"]) and not gr_obs:
     os.makedirs(agent_params["log_dir"])
-    print(f"Created new folder: {agent_params['log_dir']}")
-print(f"Agent model loaded: {result_folder}")
+    check_out.write(f"Created new folder: {agent_params['log_dir']}")
+check_out.write(f"Agent model loaded: {result_folder}")
 
 training_scores_file = "training_scores.csv"
 with open(agent_params["log_dir"] + training_scores_file, 'a') as fd:
@@ -353,9 +362,9 @@ eval_total_episodes = 0
 best_eval_average = float("-inf")
 episode_done = False
 
-print("MAX steps", max_steps)
-print("MAX training frame", max_training_frames)
-print("Total Episode", max_training_frames/max_steps)
+check_out.write("MAX steps", max_steps)
+check_out.write("MAX training frame", max_training_frames)
+check_out.write("Total Episode", max_training_frames/max_steps)
 # endregion
 
 # region AGENT INIT
@@ -385,8 +394,8 @@ if gr_obs:
 reset_all()
 
 # region MAIN LOOP
-input("Start?")
-print("---------------------------------------------")
+# input("Start?")
+# print("---------------------------------------------")
 
 item_count_eptotal = {k: [0] * max_steps for k in _rewardable_items}
 
@@ -451,8 +460,8 @@ while frame_num < max_training_frames:
     # handle episode done
     if episode_done:
         if eval_running:  # This is only run during training
-            print('Evaluation time step: ' + str(steps_since_eval_began) +
-                  ', episode ended with score: ' + str(total_reward))
+            # print('Evaluation time step: ' + str(steps_since_eval_began) +
+            #       ', episode ended with score: ' + str(total_reward))
             eval_total_score += total_reward
             eval_total_episodes += 1
         else:
@@ -468,8 +477,8 @@ while frame_num < max_training_frames:
                     agent.name + ": " + str(total_reward)
 
             if not env_render:  # not gr_obs # if gr is off then print as normal
-                print('Time step: ' + str(frame_num) +
-                      ', ep scores:' + score_str[1:])
+                1 # print('Time step: ' + str(frame_num) +
+                #       ', ep scores:' + score_str[1:])
 
             if agent_params["test_mode"]:
                 with open(agent_params["log_dir"] + testing_scores_file, 'a') as fd:

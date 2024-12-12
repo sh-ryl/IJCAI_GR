@@ -361,9 +361,9 @@ eval_total_episodes = 0
 best_eval_average = float("-inf")
 episode_done = False
 
-check_out.write("MAX steps", max_steps, "\n")
-check_out.write("MAX training frame", max_training_frames, "\n")
-check_out.write("Total Episode", max_training_frames/max_steps, "\n")
+check_out.write(f"MAX steps {max_steps}\n")
+check_out.write(f"MAX training frame {max_training_frames}\n")
+check_out.write(f"Total Episode {max_training_frames/max_steps}\n")
 check_out.close()
 # endregion
 

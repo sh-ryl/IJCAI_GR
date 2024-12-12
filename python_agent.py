@@ -365,6 +365,7 @@ episode_done = False
 check_out.write("MAX steps", max_steps)
 check_out.write("MAX training frame", max_training_frames)
 check_out.write("Total Episode", max_training_frames/max_steps)
+check_out.close()
 # endregion
 
 # region AGENT INIT

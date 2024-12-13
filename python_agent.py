@@ -129,9 +129,13 @@ agent_params = {}
 
 # setup scrum output to check if everything is set correctly
 real_path = os.path.dirname(os.path.realpath(__file__))
+co_path = real_path + "/check_out/"
+
+if not os.path.exists(co_path):
+    os.makedirs(co_path)
 
 date = datetime.datetime.now()
-check_out = open(f"{real_path}/check_out/{date}.txt", "w") 
+check_out = open(f"{co_path}/{date}.txt", "w") 
 
 if sys.argv[1] == "train":
     agent_params["test_mode"] = False

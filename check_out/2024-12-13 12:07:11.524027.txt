@@ -1,0 +1,10 @@
+Training using CPU
+Rendering environment OFF
+GR Observer is OFF
+Max inventory is 999 for all ingredients
+UVFA is ON
+Created new folder: /raid/home/s3693591/IJCAI_GR/mod/ag/axe_bridge/
+Agent model loaded: /mod/ag/axe_bridge
+MAX steps 100
+MAX training frame 999999999
+Total Episode 9999999.99

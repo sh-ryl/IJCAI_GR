@@ -1,0 +1,9 @@
+Training using CPU
+Rendering environment OFF
+GR Observer is OFF
+Max inventory is 999 for all ingredients
+UVFA is ON
+Agent model loaded: /mod/ag/gem_gold
+MAX steps 100
+MAX training frame 999999999
+Total Episode 9999999.99

@@ -1,0 +1,1 @@
+Training using CUDARendering environment OFFGR Observer is OFFMax inventory is 999 for all ingredientsUVFA is ON

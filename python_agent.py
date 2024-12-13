@@ -128,9 +128,10 @@ if "hidden_items" not in current_scenario:
 agent_params = {}
 
 # setup scrum output to check if everything is set correctly
+real_path = os.path.dirname(os.path.realpath(__file__))
 
 date = datetime.datetime.now()
-check_out = open(f"check_out_{date}.txt", "w") 
+check_out = open(f"{real_path}/check_out/{date}.txt", "w") 
 
 if sys.argv[1] == "train":
     agent_params["test_mode"] = False
@@ -241,7 +242,6 @@ agent_params["adam_beta2"] = 0.999
 
 # region I/O SETTINGS
 # FILE I/O settings
-real_path = os.path.dirname(os.path.realpath(__file__))
 
 # Agent I/O settings
 ag_models_root = '/mod/ag/'

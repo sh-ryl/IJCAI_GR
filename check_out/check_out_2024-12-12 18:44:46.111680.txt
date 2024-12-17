@@ -1,6 +1,0 @@
-Training using CUDA
-Rendering environment OFF
-GR Observer is OFF
-Max inventory is 999 for all ingredients
-UVFA is ON
-Agent model loaded: /mod/ag/gem_gold

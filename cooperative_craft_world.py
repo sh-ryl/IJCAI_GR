@@ -73,6 +73,11 @@ def print_or_log(str, filename):
     else:
         print(str)
 
+def elo(self, ra, rb):
+    # the probability of a winning over b
+    # following elo rating formula
+    return 1/(1 + 10 ** ((rb - ra)/400))
+
 
 class Screen():
 
@@ -198,7 +203,7 @@ class CooperativeCraftWorldState():
                         r_craft = random.random()
                         craft_prob = 1
                         if len(self.ab_rating) > 0:
-                            craft_prob = self.elo(
+                            craft_prob = elo(
                                 self.ab_rating['player'], self.ab_rating['craft'])
 
                         # craft using items in inventory
@@ -402,11 +407,6 @@ class CooperativeCraftWorldState():
 
         if use_delay:
             sleep(0.1)
-
-    def elo(self, ra, rb):
-        # the probability of a winning over b
-        # following elo rating formula
-        return 1/(1 + 10 ** ((rb - ra)/400))
 
 
 class CooperativeCraftWorld(gym.Env):

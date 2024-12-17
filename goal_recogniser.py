@@ -4,6 +4,7 @@ import string
 import numpy as np
 import agent
 from cooperative_craft_world import CooperativeCraftWorldState
+from cooperative_craft_world import elo
 from dqn import DQN, DQN_Config
 from dialog import Dialog
 
@@ -115,13 +116,15 @@ class GoalRecogniser(object):
             1.0 / int(self.gr_num)] * int(self.gr_num)
         self.tm_dkl_ravg_prev = [0] * self.gr_num
 
-    def calculate_action_probs(self, model_no, state):
+    def calculate_action_probs(self, model_no, state, transition=False):
         state = torch.from_numpy(state.getRepresentation(gr_obs=True,
                                                          gr_param=self.tm_param[model_no])).float().to(
             self.device).unsqueeze(0)
         q = self.trained_models[model_no].forward(
             state).cpu().detach().squeeze()
         probs = F.softmax(q.div(self.model_temperature), dim=0)
+        if transition:
+            probs *= probs
         return probs
 
     def perceive(self, state, action: int, frame_num, print_result, momentum=0.95):

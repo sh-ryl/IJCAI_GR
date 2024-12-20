@@ -73,7 +73,8 @@ def print_or_log(str, filename):
     else:
         print(str)
 
-def elo(self, ra, rb):
+
+def elo(ra, rb):
     # the probability of a winning over b
     # following elo rating formula
     return 1/(1 + 10 ** ((rb - ra)/400))

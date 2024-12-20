@@ -1,6 +1,8 @@
 import os
 import random
 import sys
+import datetime
+
 import numpy as np
 import decimal
 import scenario
@@ -17,8 +19,6 @@ from goal_recogniser import GoalRecogniser
 import torch
 
 from copy import deepcopy
-
-import datetime
 
 ctx = decimal.Context()
 ctx.prec = 20
@@ -135,7 +135,7 @@ if not os.path.exists(co_path):
     os.makedirs(co_path)
 
 date = datetime.datetime.now()
-check_out = open(f"{co_path}/{date}.txt", "w") 
+check_out = open(f"{co_path}/{date}.txt", "w")
 
 if sys.argv[1] == "train":
     agent_params["test_mode"] = False
@@ -189,7 +189,8 @@ if "result" in exp_param:
 
 if "limit" in exp_param:
     limit = True
-    check_out.write("Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1\n")
+    check_out.write(
+        "Max inventory for collectible items (grass, iron, and wood) is LIMITED to 1\n")
     exp_param_path += 'limit/'
     if gr_obs:
         gr_out_param['limit'] = ''
@@ -222,9 +223,9 @@ if "ability" in exp_param:
         gr_out_param['ability'] = ab_rating['player']
 
 
-
 # just to label a certain training model
-custom_param = "" #input("Enter any custom param for agent model (leave empty when not used): ")
+custom_param = input(
+    "Enter any custom param for agent model (leave empty when not used): ")
 if custom_param != "":
     exp_param.append(custom_param)
     if gr_obs:
@@ -481,7 +482,7 @@ while frame_num < max_training_frames:
                     agent.name + ": " + str(total_reward)
 
             if not env_render:  # not gr_obs # if gr is off then print as normal
-                1 # print('Time step: ' + str(frame_num) +
+                1  # print('Time step: ' + str(frame_num) +
                 #       ', ep scores:' + score_str[1:])
 
             if agent_params["test_mode"]:

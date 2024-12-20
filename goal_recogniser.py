@@ -116,15 +116,13 @@ class GoalRecogniser(object):
             1.0 / int(self.gr_num)] * int(self.gr_num)
         self.tm_dkl_ravg_prev = [0] * self.gr_num
 
-    def calculate_action_probs(self, model_no, state, transition=False):
-        state = torch.from_numpy(state.getRepresentation(gr_obs=True,
-                                                         gr_param=self.tm_param[model_no])).float().to(
+    def calculate_action_probs(self, model_no, state):
+        state_tensor = torch.from_numpy(state.getRepresentation(gr_obs=True,
+                                                                gr_param=self.tm_param[model_no])).float().to(
             self.device).unsqueeze(0)
         q = self.trained_models[model_no].forward(
-            state).cpu().detach().squeeze()
+            state_tensor).cpu().detach().squeeze()
         probs = F.softmax(q.div(self.model_temperature), dim=0)
-        if transition:
-            probs *= probs
         return probs
 
     def perceive(self, state, action: int, frame_num, print_result, momentum=0.95):
@@ -148,6 +146,10 @@ class GoalRecogniser(object):
             tm_dkl_step.append(dkl_step)
 
             # bayes prob
+            if action == 5 and len(state.ab_rating) > 0:
+                act_probs[action] = act_probs[action] * \
+                    elo(state.ab_rating['player'],
+                        state.ab_rating['craft']) * 1
             bayes_pr_act += self.tm_bi_prob[i] * act_probs[action]
 
         tm_bi_prob_new = [0] * self.gr_num

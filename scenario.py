@@ -84,7 +84,7 @@ scenarios["eval"] = {}
 scenarios["eval"]["goal_sets"] = [
     # {"iron": 0.7, "wood": -1, "grass": 1}
     # {"gem": 0.9, "gold": 0.1}
-    # {"axe": 1, "bridge": 0.1}
+    {"axe": 1, "bridge": 0.7}
     # {"cloth": 0.9, "stick": 0.1}
 ]
 
